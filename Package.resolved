@@ -1,0 +1,41 @@
+{
+  "pins" : [
+    {
+      "identity" : "cfreetype",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/madmachineio/CFreeType",
+      "state" : {
+        "revision" : "169a741f0e452bf29be2346d321a52da4fb9a0da",
+        "version" : "2.13.2"
+      }
+    },
+    {
+      "identity" : "madboards",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/madmachineio/MadBoards.git",
+      "state" : {
+        "branch" : "develop",
+        "revision" : "462f2955528697f11983e083143e5f8df5c21e46"
+      }
+    },
+    {
+      "identity" : "maddrivers",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/madmachineio/MadDrivers.git",
+      "state" : {
+        "branch" : "develop",
+        "revision" : "46c0fb01f19a252bfe176ef7442d6eb3a041c76a"
+      }
+    },
+    {
+      "identity" : "swiftio",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/madmachineio/SwiftIO.git",
+      "state" : {
+        "branch" : "develop",
+        "revision" : "e09f84bcb158bd45e6edb181de9393aaf73d006b"
+      }
+    }
+  ],
+  "version" : 2
+}

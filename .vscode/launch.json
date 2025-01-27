@@ -1,0 +1,22 @@
+{
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:BrewUI}",
+            "name": "Debug Examples",
+            "program": "${workspaceFolder:BrewUI}/.build/debug/Examples",
+            "preLaunchTask": "swift: Build Debug Examples"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:BrewUI}",
+            "name": "Release Examples",
+            "program": "${workspaceFolder:BrewUI}/.build/release/Examples",
+            "preLaunchTask": "swift: Build Release Examples"
+        }
+    ]
+}
