@@ -219,13 +219,25 @@ public struct Button: BrewView {
         self.selectionColor = Color.yellow.rawValue
         self.action = action
     }
+
+    public init(
+        frame: Frame,
+        foregroundColor: UInt32 = Color.white.rawValue,
+        selectionColor: UInt32 = Color.yellow.rawValue,
+        action: @escaping () -> Void
+    ) {
+        self.frame = frame
+        self.foregroundColor = foregroundColor
+        self.selectionColor = selectionColor
+        self.action = action
+    }
     
     public func render(in context: inout BrewUIContext) {
         let index = context.currentButtonIndex
         context.currentButtonIndex += 1
         
         let color: UInt32 = (index == context.selectedButtonIndex) ?
-            foregroundColor : selectionColor
+            selectionColor : foregroundColor
         
         drawRectangle(layer: context.layer,
                       x: frame.x,
@@ -339,42 +351,5 @@ public struct BrewUIApp<Content: BrewView> {
             }
             sleep(ms: 50)
         }
-    }
-}
-
-// -----------------------------------------------------------------------------
-// MARK: - Sample Usage: ContentView and App Launch
-// This sample content view is written in a SwiftUI-like style.
-// (Note: No text is drawn; you simply see outlined rectangles.)
-
-struct ContentView: BrewView {
-    let body: Group
-    init() {
-        body = Group {
-            Button(frame: Frame(x: 20, y: 20, width: 140, height: 30)) {
-                // Action for Button 1.
-            }
-            Button(frame: Frame(x: 20, y: 70, width: 140, height: 30)) {
-                // Action for Button 2.
-            }
-            Button(frame: Frame(x: 20, y: 120, width: 140, height: 30)) {
-                // Action for Button 3.
-            }
-            Button(frame: Frame(x: 20, y: 170, width: 140, height: 30)) {
-                // Action for Button 4.
-            }
-        }
-    }
-    
-    public func render(in context: inout BrewUIContext) {
-        body.render(in: &context)
-    }
-    
-    public func actionForButton(at index: Int) -> (() -> Void)? {
-        return body.actionForButton(at: index)
-    }
-    
-    public func buttonCount() -> Int {
-        return body.buttonCount()
     }
 }
