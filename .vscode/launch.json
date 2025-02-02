@@ -17,6 +17,24 @@
             "name": "Release Examples",
             "program": "${workspaceFolder:BrewUI}/.build/release/Examples",
             "preLaunchTask": "swift: Build Release Examples"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:BrewUI}",
+            "name": "Debug Menu",
+            "program": "${workspaceFolder:BrewUI}/.build/debug/Menu",
+            "preLaunchTask": "swift: Build Debug Menu"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:BrewUI}",
+            "name": "Release Menu",
+            "program": "${workspaceFolder:BrewUI}/.build/release/Menu",
+            "preLaunchTask": "swift: Build Release Menu"
         }
     ]
 }

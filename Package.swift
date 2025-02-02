@@ -9,7 +9,7 @@ let package = Package(
         // Products define the executables and libraries a package produces, making them visible to other packages.
         .library(
             name: "BrewUI",
-            targets: ["BrewUI"]),
+            targets: ["BrewUI"])
 
     ],
     dependencies: [
@@ -27,12 +27,8 @@ let package = Package(
             dependencies: [
                 "SwiftIO",
                 "MadBoards",
-                .product(name: "ST7789", package: "MadDrivers"),
+                "MadDrivers",
                 "CFreeType",
-            ]
-            ),
-        .testTarget(
-            name: "BrewUITests",
-            dependencies: ["BrewUI"]),
+            ])
     ]
 )
