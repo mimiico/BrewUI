@@ -206,12 +206,19 @@ public struct Group: BrewView {
 
 public struct Button: BrewView {
     public let frame: Frame
+    public let foregroundColor: UInt32 
+    public let selectionColor: UInt32 
     public let action: () -> Void
-    public let foregroundColor: UInt32 = Color.white.rawValue
-    public let selectionColor: UInt32 = Color.yellow.rawValue
     
-    public init(frame: Frame, action: @escaping () -> Void) {
+    public init(
+        frame: Frame,
+        foregroundColor: UInt32 = Color.white.rawValue, 
+        selectionColor: UInt32 = Color.yellow.rawValue, 
+        action: @escaping () -> Void
+    ) {
         self.frame = frame
+        self.foregroundColor = foregroundColor
+        self.selectionColor = selectionColor
         self.action = action
     }
     
