@@ -224,7 +224,6 @@ public struct Button: BrewView {
         let index = context.currentButtonIndex
         context.currentButtonIndex += 1
         
-        // Draw the button: yellow if selected, blue otherwise.
         let color: UInt32 = (index == context.selectedButtonIndex) ?
             foregroundColor : selectionColor
         
