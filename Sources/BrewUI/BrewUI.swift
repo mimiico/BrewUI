@@ -207,6 +207,8 @@ public struct Group: BrewView {
 public struct Button: BrewView {
     public let frame: Frame
     public let action: () -> Void
+    public let foregroundColor: UInt32 = Color.white.rawValue
+    public let selectionColor: UInt32 = Color.yellow.rawValue
     
     public init(frame: Frame, action: @escaping () -> Void) {
         self.frame = frame
@@ -219,7 +221,7 @@ public struct Button: BrewView {
         
         // Draw the button: yellow if selected, blue otherwise.
         let color: UInt32 = (index == context.selectedButtonIndex) ?
-            Color.yellow.rawValue : Color.blue.rawValue
+            foregroundColor : selectionColor
         
         drawRectangle(layer: context.layer,
                       x: frame.x,
