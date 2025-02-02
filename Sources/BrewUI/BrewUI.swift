@@ -212,13 +212,11 @@ public struct Button: BrewView {
     
     public init(
         frame: Frame,
-        foregroundColor: UInt32 = Color.white.rawValue, 
-        selectionColor: UInt32 = Color.yellow.rawValue, 
         action: @escaping () -> Void
     ) {
         self.frame = frame
-        self.foregroundColor = foregroundColor
-        self.selectionColor = selectionColor
+        self.foregroundColor = Color.white.rawValue
+        self.selectionColor = Color.yellow.rawValue
         self.action = action
     }
     
