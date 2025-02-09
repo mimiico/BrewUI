@@ -19,6 +19,22 @@ func clearScreen(layer: Layer, width: Int, height: Int) {
     }
 }
 
+func drawText(layer: Layer,
+              x: Int, y: Int,
+              text: String,
+              font: Font,
+              color: UInt32) {
+    let mask = font.getMask(text);
+    layer.draw { canvas in
+        canvas.blend(
+            from: mask,
+            foregroundColor: Color(color),
+            to: Point(x: x, y: y)
+        )
+
+    }
+}
+
 func drawRectangle(layer: Layer,
                    x: Int, y: Int,
                    width: Int, height: Int,
@@ -254,7 +270,35 @@ public struct Button: BrewView {
     public func buttonCount() -> Int {
         return 1
     }
-}  // ←–– This closing brace was missing!
+}
+
+public struct Text: BrewView {
+    public let text: String
+    public let frame: Frame
+    public let foregroundColor: UInt32 
+    public let font: Font
+
+    public init(
+        _ text: String,
+        frame: Frame,
+        font: Font,
+        foregroundColor: UInt32 = Color.white.rawValue
+    ) {
+        self.frame = frame
+        self.text = text
+        self.font = font
+        self.foregroundColor = foregroundColor
+    }
+
+    public func render(in context: inout BrewUIContext) {
+        drawText(layer: context.layer,
+                 x: frame.x,
+                 y: frame.y,
+                 text: text,
+                 font: font,
+                 color: foregroundColor)
+    }
+}
 
 // -----------------------------------------------------------------------------
 // MARK: - BrewUIApp: The Declarative UI Runner
