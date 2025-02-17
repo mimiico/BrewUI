@@ -411,7 +411,7 @@ public struct BrewUIApp<Content: BrewView> {
             drawCircle(layer: context.layer,
                  x: 10,
                  y: 10,
-                 radius: 10
+                 radius: 10,
                  color: Color.red.rawValue)
             // // 1) Map the potentiometer value to a button index.
             // let rawValue = pot.readRawValue()
