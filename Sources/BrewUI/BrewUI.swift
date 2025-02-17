@@ -73,6 +73,74 @@ func drawRectangle(layer: Layer,
     }
 }
 
+func drawCircle(layer: Layer, x: Int, y: Int, radius: Int, color: UInt32) {
+    var pos: Point
+    pos.x = x
+    pos.y = y
+    layer.draw { canvas in
+        canvas.fillCircle(
+            at: pos, 
+            radius: radius, 
+            data: color
+        )
+    }
+}
+
+
+// func drawOval(layer: Layer, x: Int, y: Int, width: Int, height: Int, color: UInt32) {
+//     let a = width / 2
+//     let b = height / 2
+//     var xCoord = 0
+//     var yCoord = b
+//     var dx = 1
+//     var dy = 1
+//     var decision = b * b - a * a * b + a * a / 4
+
+//     func drawOvalPoints(centerX: Int, centerY: Int, x: Int, y: Int) {
+//         layer.draw { canvas in
+//             canvas.drawLine(from: Point(x: centerX + x, y: centerY + y), to: Point(x: centerX + x, y: centerY + y), data: color)
+//             canvas.drawLine(from: Point(x: centerX - x, y: centerY + y), to: Point(x: centerX - x, y: centerY + y), data: color)
+//             canvas.drawLine(from: Point(x: centerX + x, y: centerY - y), to: Point(x: centerX + x, y: centerY - y), data: color)
+//             canvas.drawLine(from: Point(x: centerX - x, y: centerY - y), to: Point(x: centerX - x, y: centerY - y), data: color)
+//         }
+//     }
+
+//     while xCoord <= a {
+//         drawOvalPoints(centerX: x, centerY: y, x: xCoord, y: yCoord)
+//         if decision < 0 {
+//             decision += 2 * b * b * xCoord + b * b
+//         } else {
+//             decision += 2 * b * b * xCoord - 2 * a * a * yCoord + a * a
+//             yCoord -= 1
+//         }
+//         xCoord += 1
+//     }
+// }
+
+
+// func drawPentagon(layer: Layer, x: Int, y: Int, radius: Int, color: UInt32) {
+//     let angleStep = 72.0 // 360 degrees divided by 5 sides
+//     var points: [Point] = []
+
+//     // Calculate the points of the pentagon
+//     for i in 0..<5 {
+//         let angle = Double(i) * angleStep
+//         let px = x + Int(Double(radius) * cos(angle * .pi / 180.0))
+//         let py = y + Int(Double(radius) * sin(angle * .pi / 180.0))
+//         points.append(Point(x: px, y: py))
+//     }
+
+//     // Draw lines between each consecutive point
+//     for i in 0..<5 {
+//         let start = points[i]
+//         let end = points[(i + 1) % 5]
+//         layer.draw { canvas in
+//             canvas.drawLine(from: start, to: end, data: color)
+//         }
+//     }
+// }
+
+
 // -----------------------------------------------------------------------------
 // MARK: - BrewUI Declarative Framework
 
@@ -336,63 +404,68 @@ public struct BrewUIApp<Content: BrewView> {
     
     // Marked as mutating because we update self's buffers.
     public mutating func run() -> Never {
-        let totalButtons = content.buttonCount()
-        var lastSelectedIndex = -1
+        // let totalButtons = content.buttonCount()
+        // var lastSelectedIndex = -1
         
-        while true {
-            // 1) Map the potentiometer value to a button index.
-            let rawValue = pot.readRawValue()
-            let mapped = Int(Float(rawValue) * Float(totalButtons) / Float(pot.maxRawValue))
-            let clampedIndex = max(0, min(mapped, totalButtons - 1))
+        // while true {
+        //     // 1) Map the potentiometer value to a button index.
+        //     let rawValue = pot.readRawValue()
+        //     let mapped = Int(Float(rawValue) * Float(totalButtons) / Float(pot.maxRawValue))
+        //     let clampedIndex = max(0, min(mapped, totalButtons - 1))
             
-            // 2) If the highlighted button changed, play a selection beep.
-            if clampedIndex != lastSelectedIndex {
-                buzzer.set(frequency: 440, dutycycle: 0.5)
-                sleep(ms: 100)
-                buzzer.suspend()
-                lastSelectedIndex = clampedIndex
-            }
+        //     // 2) If the highlighted button changed, play a selection beep.
+        //     if clampedIndex != lastSelectedIndex {
+        //         buzzer.set(frequency: 440, dutycycle: 0.5)
+        //         sleep(ms: 100)
+        //         buzzer.suspend()
+        //         lastSelectedIndex = clampedIndex
+        //     }
             
-            // 3) Clear and re-render the view hierarchy.
-            clearScreen(layer: layer, width: screen.width, height: screen.height)
-            var context = BrewUIContext(layer: layer,
-                                        width: screen.width,
-                                        height: screen.height,
-                                        selectedButtonIndex: clampedIndex)
-            content.render(in: &context)
+        //     // 3) Clear and re-render the view hierarchy.
+        //     clearScreen(layer: layer, width: screen.width, height: screen.height)
+        //     var context = BrewUIContext(layer: layer,
+        //                                 width: screen.width,
+        //                                 height: screen.height,
+        //                                 selectedButtonIndex: clampedIndex)
+        //     content.render(in: &context)
             
-            // Copy buffers locally to avoid overlapping access to self's properties.
-            var fb = frameBuffer
-            var sb = screenBuffer
-            layer.render(
-                into: &fb,
-                output: &sb,
-                transform: Color.getRGB565LE
-            ) { dirty, data in
-                screen.writeBitmap(
-                    x: dirty.x,
-                    y: dirty.y,
-                    width: dirty.width,
-                    height: dirty.height,
-                    data: data
-                )
-            }
-            frameBuffer = fb
-            screenBuffer = sb
+        //     // Copy buffers locally to avoid overlapping access to self's properties.
+        //     var fb = frameBuffer
+        //     var sb = screenBuffer
+        //     layer.render(
+        //         into: &fb,
+        //         output: &sb,
+        //         transform: Color.getRGB565LE
+        //     ) { dirty, data in
+        //         screen.writeBitmap(
+        //             x: dirty.x,
+        //             y: dirty.y,
+        //             width: dirty.width,
+        //             height: dirty.height,
+        //             data: data
+        //         )
+        //     }
+        //     frameBuffer = fb
+        //     screenBuffer = sb
             
-            // 4) If the hardware button is pressed, activate the selected button.
-            if hwButton.read() {
-                if let action = content.actionForButton(at: clampedIndex) {
-                    buzzer.set(frequency: 880, dutycycle: 0.5)
-                    sleep(ms: 100)
-                    buzzer.suspend()
-                    action()
-                }
-                // Wait for button release to avoid multiple activations.
-                while hwButton.read() {
-                    sleep(ms: 10)
-                }
-            }
+        //     // 4) If the hardware button is pressed, activate the selected button.
+        //     if hwButton.read() {
+        //         if let action = content.actionForButton(at: clampedIndex) {
+        //             buzzer.set(frequency: 880, dutycycle: 0.5)
+        //             sleep(ms: 100)
+        //             buzzer.suspend()
+        //             action()
+        //         }
+        //         // Wait for button release to avoid multiple activations.
+        //         while hwButton.read() {
+        //             sleep(ms: 10)
+        //         }
+        //     }
+            drawCircle(layer: context.layer,
+                 x: 10,
+                 y: 10,
+                 radius: 10
+                 color: Color.Red.rawValue)
             sleep(ms: 50)
         }
     }
