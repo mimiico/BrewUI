@@ -106,6 +106,26 @@ func drawTriangle(layer: Layer,
     }
 }
 
+func drawPolygon(layer: Layer, points: [Point], radius: Int, color: UInt32) {
+    // Draw line combinations consists of two points
+        for index in 0..<points.count{
+                let pointA = points[index]
+                let pointB: Point
+                if index != points.count - 1 {
+                    pointB = points[index + 1]
+                } else {
+                    pointB = points[0]
+                }
+                layer.draw { canvas in
+                    canvas.drawLine(
+                        from: Point(x: pointA.x, y: pointA.y),
+                        to: Point(x: pointB.x, y: pointB.y),
+                        data: color
+                    )
+                }
+            }
+}
+
 func drawCircle(layer: Layer, x: Int, y: Int, radius: Int, color: UInt32) {
     layer.draw { canvas in
         canvas.fillCircle(
@@ -115,6 +135,8 @@ func drawCircle(layer: Layer, x: Int, y: Int, radius: Int, color: UInt32) {
         )
     }
 }
+
+
 
 
 // func drawOval(layer: Layer, x: Int, y: Int, width: Int, height: Int, color: UInt32) {
