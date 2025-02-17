@@ -74,12 +74,9 @@ func drawRectangle(layer: Layer,
 }
 
 func drawCircle(layer: Layer, x: Int, y: Int, radius: Int, color: UInt32) {
-    var pos: Point
-    pos.x = x
-    pos.y = y
     layer.draw { canvas in
         canvas.fillCircle(
-            at: pos, 
+            at: Point(x: x, y: y), 
             radius: radius, 
             data: color
         )
