@@ -412,7 +412,7 @@ public struct BrewUIApp<Content: BrewView> {
                  x: 10,
                  y: 10,
                  radius: 10
-                 color: Color.Red.rawValue)
+                 color: Color.red.rawValue)
             // // 1) Map the potentiometer value to a button index.
             // let rawValue = pot.readRawValue()
             // let mapped = Int(Float(rawValue) * Float(totalButtons) / Float(pot.maxRawValue))
