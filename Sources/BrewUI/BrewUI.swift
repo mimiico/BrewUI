@@ -73,6 +73,39 @@ func drawRectangle(layer: Layer,
     }
 }
 
+func drawTriangle(layer: Layer,
+                   x0: Int, y0: Int,
+                   x1: Int, y1: Int,
+                   x2: Int, y2: Int,
+                   color: UInt32) {
+    // Left Line
+    layer.draw { canvas in
+        canvas.drawLine(
+            from: Point(x: x0, y: y0),
+            to: Point(x: x1, y: y1),
+            data: color
+        )
+    }
+
+    // Right Line
+    layer.draw { canvas in
+        canvas.drawLine(
+            from: Point(x: x0, y: y0),
+            to: Point(x: x2, y: y2),
+            data: color
+        )
+    }
+
+    // Bottom Line
+    layer.draw { canvas in
+        canvas.drawLine(
+            from: Point(x: x1, y: y1),
+            to: Point(x: x2, y: y2),
+            data: color
+        )
+    }
+}
+
 func drawCircle(layer: Layer, x: Int, y: Int, radius: Int, color: UInt32) {
     layer.draw { canvas in
         canvas.fillCircle(
@@ -326,11 +359,17 @@ public struct Button: BrewView {
         //               width: frame.width,
         //               height: frame.height,
         //               color: color)
-        drawCircle(layer: context.layer,
-            x: frame.x,
-            y: frame.y,
-            radius: 10,
-            color: color)
+        // drawCircle(layer: context.layer,
+        //     x: frame.x,
+        //     y: frame.y,
+        //     radius: 10,
+        //     color: color)
+        drawTriangle(layer: context.layer,
+            x0: frame.x, y0: frame.y,
+            x1: frame.x + 5, y1: frame.y - 5,
+            x2: frame.x - 5, y2: frame.y - 5,
+            color: color
+        )
     }
     
     public func actionForButton(at index: Int) -> (() -> Void)? {
