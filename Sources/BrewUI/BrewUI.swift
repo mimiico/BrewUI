@@ -341,15 +341,18 @@ public struct Group: BrewView {
 // The only currently supported UI element.
 
 public struct Button: BrewView {
+    public let text: String?
     public let frame: Frame
     public let foregroundColor: UInt32 
     public let selectionColor: UInt32 
     public let action: () -> Void
     
     public init(
+        text: String? = nil,
         frame: Frame,
         action: @escaping () -> Void
     ) {
+        self.text = text
         self.frame = frame
         self.foregroundColor = Color.white.rawValue
         self.selectionColor = Color.yellow.rawValue
@@ -357,11 +360,13 @@ public struct Button: BrewView {
     }
 
     public init(
+        text: String? = nil,
         frame: Frame,
         foregroundColor: UInt32 = Color.white.rawValue,
         selectionColor: UInt32 = Color.yellow.rawValue,
         action: @escaping () -> Void
     ) {
+        self.text = text
         self.frame = frame
         self.foregroundColor = foregroundColor
         self.selectionColor = selectionColor
@@ -381,6 +386,15 @@ public struct Button: BrewView {
                       width: frame.width,
                       height: frame.height,
                       color: color)
+
+        if let text = text {
+            drawText(layer: context.layer,
+                x: frame.x + 5,
+                y: frame.y,
+                text: text,
+                font: Font(path: "/lfs/Resources/Fonts/Roboto-Regular.ttf", pointSize: 8, dpi: 220),
+                color: color)
+        }
 
                       
         // drawCircle(layer: context.layer,
@@ -409,6 +423,7 @@ public struct Text: BrewView {
     public let text: String
     public let frame: Frame
     public let foregroundColor: UInt32 
+    public let pointSize: Int = 8
 
     public init(
         _ text: String,
@@ -421,7 +436,7 @@ public struct Text: BrewView {
     }
 
     public func render(in context: inout BrewUIContext) {
-        let font = Font(path: "/lfs/Resources/Fonts/Roboto-Regular.ttf", pointSize: 10, dpi: 220)
+        let font = Font(path: "/lfs/Resources/Fonts/Roboto-Regular.ttf", pointSize: pointSize, dpi: 220)
 
         drawText(layer: context.layer,
                  x: frame.x,
