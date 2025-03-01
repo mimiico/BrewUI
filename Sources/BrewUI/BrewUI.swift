@@ -375,6 +375,8 @@ public struct Button: BrewView {
                       width: frame.width,
                       height: frame.height,
                       color: color)
+
+                      
         // drawCircle(layer: context.layer,
         //     x: frame.x,
         //     y: frame.y,
@@ -401,21 +403,20 @@ public struct Text: BrewView {
     public let text: String
     public let frame: Frame
     public let foregroundColor: UInt32 
-    public let font: Font
 
     public init(
         _ text: String,
         frame: Frame,
-        font: Font,
         foregroundColor: UInt32 = Color.white.rawValue
     ) {
         self.frame = frame
         self.text = text
-        self.font = font
         self.foregroundColor = foregroundColor
     }
 
     public func render(in context: inout BrewUIContext) {
+        let font = Font(path: "/lfs/Resources/Fonts/Roboto-Regular.ttf", pointSize: 10, dpi: 220)
+
         drawText(layer: context.layer,
                  x: frame.x,
                  y: frame.y,
