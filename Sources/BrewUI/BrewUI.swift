@@ -73,6 +73,126 @@ func drawRectangle(layer: Layer,
     }
 }
 
+func drawTriangle(layer: Layer,
+                   x0: Int, y0: Int,
+                   x1: Int, y1: Int,
+                   x2: Int, y2: Int,
+                   color: UInt32) {
+    // Left Line
+    layer.draw { canvas in
+        canvas.drawLine(
+            from: Point(x: x0, y: y0),
+            to: Point(x: x1, y: y1),
+            data: color
+        )
+    }
+
+    // Right Line
+    layer.draw { canvas in
+        canvas.drawLine(
+            from: Point(x: x0, y: y0),
+            to: Point(x: x2, y: y2),
+            data: color
+        )
+    }
+
+    // Bottom Line
+    layer.draw { canvas in
+        canvas.drawLine(
+            from: Point(x: x1, y: y1),
+            to: Point(x: x2, y: y2),
+            data: color
+        )
+    }
+}
+
+func drawPolygon(layer: Layer, points: [Point], radius: Int, color: UInt32) {
+    // Draw line combinations consists of two points
+        for index in 0..<points.count{
+                let pointA = points[index]
+                let pointB: Point
+                if index != points.count - 1 {
+                    pointB = points[index + 1]
+                } else {
+                    pointB = points[0]
+                }
+                layer.draw { canvas in
+                    canvas.drawLine(
+                        from: Point(x: pointA.x, y: pointA.y),
+                        to: Point(x: pointB.x, y: pointB.y),
+                        data: color
+                    )
+                }
+            }
+}
+
+func drawCircle(layer: Layer, x: Int, y: Int, radius: Int, color: UInt32) {
+    layer.draw { canvas in
+        canvas.fillCircle(
+            at: Point(x: x, y: y), 
+            radius: radius, 
+            data: color
+        )
+    }
+}
+
+
+
+
+// func drawOval(layer: Layer, x: Int, y: Int, width: Int, height: Int, color: UInt32) {
+//     let a = width / 2
+//     let b = height / 2
+//     var xCoord = 0
+//     var yCoord = b
+//     var dx = 1
+//     var dy = 1
+//     var decision = b * b - a * a * b + a * a / 4
+
+//     func drawOvalPoints(centerX: Int, centerY: Int, x: Int, y: Int) {
+//         layer.draw { canvas in
+//             canvas.drawLine(from: Point(x: centerX + x, y: centerY + y), to: Point(x: centerX + x, y: centerY + y), data: color)
+//             canvas.drawLine(from: Point(x: centerX - x, y: centerY + y), to: Point(x: centerX - x, y: centerY + y), data: color)
+//             canvas.drawLine(from: Point(x: centerX + x, y: centerY - y), to: Point(x: centerX + x, y: centerY - y), data: color)
+//             canvas.drawLine(from: Point(x: centerX - x, y: centerY - y), to: Point(x: centerX - x, y: centerY - y), data: color)
+//         }
+//     }
+
+//     while xCoord <= a {
+//         drawOvalPoints(centerX: x, centerY: y, x: xCoord, y: yCoord)
+//         if decision < 0 {
+//             decision += 2 * b * b * xCoord + b * b
+//         } else {
+//             decision += 2 * b * b * xCoord - 2 * a * a * yCoord + a * a
+//             yCoord -= 1
+//         }
+//         xCoord += 1
+//     }
+// }
+
+
+// func drawPentagon(layer: Layer, x: Int, y: Int, radius: Int, color: UInt32) {
+//     let angleStep = 72.0 // 360 degrees divided by 5 sides
+//     var points: [Point] = []
+
+//     // Calculate the points of the pentagon
+//     for i in 0..<5 {
+//         let angle = Double(i) * angleStep
+//         let px = x + Int(Double(radius) * cos(angle * .pi / 180.0))
+//         let py = y + Int(Double(radius) * sin(angle * .pi / 180.0))
+//         points.append(Point(x: px, y: py))
+//     }
+
+//     // Draw lines between each consecutive point
+//     for i in 0..<5 {
+//         let start = points[i]
+//         let end = points[(i + 1) % 5]
+//         layer.draw { canvas in
+//             canvas.drawLine(from: start, to: end, data: color)
+//         }
+//     }
+// }
+
+
 // -----------------------------------------------------------------------------
 // MARK: - BrewUI Declarative Framework
 
@@ -255,12 +375,23 @@ public struct Button: BrewView {
         let color: UInt32 = (index == context.selectedButtonIndex) ?
             selectionColor : foregroundColor
         
-        drawRectangle(layer: context.layer,
-                      x: frame.x,
-                      y: frame.y,
-                      width: frame.width,
-                      height: frame.height,
-                      color: color)
+        // drawRectangle(layer: context.layer,
+        //               x: frame.x,
+        //               y: frame.y,
+        //               width: frame.width,
+        //               height: frame.height,
+        //               color: color)
+        // drawCircle(layer: context.layer,
+        //     x: frame.x,
+        //     y: frame.y,
+        //     radius: 10,
+        //     color: color)
+        drawTriangle(layer: context.layer,
+            x0: frame.x, y0: frame.y,
+            x1: frame.x + 5, y1: frame.y - 5,
+            x2: frame.x - 5, y2: frame.y - 5,
+            color: color
+        )
     }
     
     public func actionForButton(at index: Int) -> (() -> Void)? {
