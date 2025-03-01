@@ -34,6 +34,15 @@ func drawText(layer: Layer,
     }
 }
 
+func fillRectangle(layer: Layer,
+                   x: Int, y: Int,
+                   width: Int, height: Int,
+                   color: UInt32) {
+    layer.draw { canvas in
+        canvas.fillRectangle(at: Point(x, y), width: width, height: height, data: color)
+    }
+}
+
 func drawRectangle(layer: Layer,
                    x: Int, y: Int,
                    width: Int, height: Int,
@@ -71,6 +80,7 @@ func drawRectangle(layer: Layer,
         )
     }
 }
+
 
 func drawTriangle(layer: Layer,
                    x0: Int, y0: Int,
@@ -161,7 +171,7 @@ public struct BrewUIContext {
     public var layer: Layer
     public let width: Int
     public let height: Int
-    public let selectionManager: SelectionManager?
+    public var selectionManager: SelectionManager?
     
     public init(
         layer: Layer, 
@@ -382,6 +392,12 @@ public struct Button: BrewView {
         let buttonIndex = Button.currentButtonIndex
         Button.currentButtonIndex += 1
         
+        // Register this button's action with the selection manager if available
+        if var selManager = context.selectionManager, buttonIndex >= selManager.totalItems {
+            selManager.register(action: action)
+            context.selectionManager = selManager
+        }
+        
         // Check if this button is selected
         let isSelected = context.selectionManager?.isSelected(at: buttonIndex) ?? false
         
@@ -389,7 +405,7 @@ public struct Button: BrewView {
         let color: UInt32 = isSelected ? selectionColor : foregroundColor
         
         // Draw the button
-        drawRectangle(layer: context.layer,
+        fillRectangle(layer: context.layer,
                       x: frame.x,
                       y: frame.y,
                       width: frame.width,
@@ -402,7 +418,7 @@ public struct Button: BrewView {
                 y: frame.y + 5,
                 text: text,
                 font: Font(path: "/lfs/Resources/Fonts/Roboto-Regular.ttf", pointSize: 8, dpi: 220),
-                color: color)
+                color: Color.black.rawValue)
         }
     }
 }
@@ -506,28 +522,24 @@ public struct BrewUIApp<Content: BrewView> {
         // Initialize the selection manager
         self.selectionManager = SelectionManager()
         
-        // Do a trial render to collect buttons and their actions
-        var tempContext = BrewUIContext(
-            layer: layer,
-            width: screen.width,
-            height: screen.height,
-            selectionManager: nil
-        )
-        
         // Reset the button counter before rendering
         Button.currentButtonIndex = 0
         
-        // Render to collect buttons
-        content.render(in: &tempContext)
+        // Create a context with our selection manager for the initial render
+        var initialContext = BrewUIContext(
+            layer: layer,
+            width: screen.width,
+            height: screen.height,
+            selectionManager: self.selectionManager
+        )
         
-        // Create a selection manager with the correct number of buttons
-        self.selectionManager = SelectionManager(itemCount: Button.currentButtonIndex)
+        // Render once to register all buttons and their actions
+        content.render(in: &initialContext)
         
-        // Reset the button counter again
-        Button.currentButtonIndex = 0
-        
-        // Render again to register button actions
-        content.render(in: &tempContext)
+        // Update our selection manager with the one that was modified during rendering
+        if let updatedManager = initialContext.selectionManager {
+            self.selectionManager = updatedManager
+        }
     }
     
     // Marked as mutating because we update self's buffers.
