@@ -369,23 +369,23 @@ public struct Button: BrewView {
         let color: UInt32 = (index == context.selectedButtonIndex) ?
             selectionColor : foregroundColor
         
-        // drawRectangle(layer: context.layer,
-        //               x: frame.x,
-        //               y: frame.y,
-        //               width: frame.width,
-        //               height: frame.height,
-        //               color: color)
+        drawRectangle(layer: context.layer,
+                      x: frame.x,
+                      y: frame.y,
+                      width: frame.width,
+                      height: frame.height,
+                      color: color)
         // drawCircle(layer: context.layer,
         //     x: frame.x,
         //     y: frame.y,
         //     radius: 10,
         //     color: color)
-        drawTriangle(layer: context.layer,
-            x0: frame.x, y0: frame.y,
-            x1: frame.x + 5, y1: frame.y - 5,
-            x2: frame.x - 5, y2: frame.y - 5,
-            color: color
-        )
+        // drawTriangle(layer: context.layer,
+        //     x0: frame.x, y0: frame.y,
+        //     x1: frame.x + 5, y1: frame.y - 5,
+        //     x2: frame.x - 5, y2: frame.y - 5,
+        //     color: color
+        // )
     }
     
     public func actionForButton(at index: Int) -> (() -> Void)? {
