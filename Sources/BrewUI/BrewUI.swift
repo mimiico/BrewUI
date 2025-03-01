@@ -390,7 +390,7 @@ public struct Button: BrewView {
         if let text = text {
             drawText(layer: context.layer,
                 x: frame.x + 5,
-                y: frame.y,
+                y: frame.y + 5,
                 text: text,
                 font: Font(path: "/lfs/Resources/Fonts/Roboto-Regular.ttf", pointSize: 8, dpi: 220),
                 color: color)
