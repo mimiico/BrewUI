@@ -1,0 +1,40 @@
+{
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:Menu}",
+            "name": "Debug Menu",
+            "program": "${workspaceFolder:Menu}/.build/debug/Menu",
+            "preLaunchTask": "swift: Build Debug Menu"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:Menu}",
+            "name": "Release Menu",
+            "program": "${workspaceFolder:Menu}/.build/release/Menu",
+            "preLaunchTask": "swift: Build Release Menu"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:Menu}",
+            "name": "Debug BrewOS",
+            "program": "${workspaceFolder:Menu}/.build/debug/BrewOS",
+            "preLaunchTask": "swift: Build Debug BrewOS"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:Menu}",
+            "name": "Release BrewOS",
+            "program": "${workspaceFolder:Menu}/.build/release/BrewOS",
+            "preLaunchTask": "swift: Build Release BrewOS"
+        }
+    ]
+}

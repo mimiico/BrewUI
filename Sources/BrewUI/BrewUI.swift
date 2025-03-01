@@ -31,7 +31,6 @@ func drawText(layer: Layer,
             foregroundColor: Color(color),
             to: Point(x: x, y: y)
         )
-
     }
 }
 
@@ -136,63 +135,6 @@ func drawCircle(layer: Layer, x: Int, y: Int, radius: Int, color: UInt32) {
     }
 }
 
-
-
-
-// func drawOval(layer: Layer, x: Int, y: Int, width: Int, height: Int, color: UInt32) {
-//     let a = width / 2
-//     let b = height / 2
-//     var xCoord = 0
-//     var yCoord = b
-//     var dx = 1
-//     var dy = 1
-//     var decision = b * b - a * a * b + a * a / 4
-
-//     func drawOvalPoints(centerX: Int, centerY: Int, x: Int, y: Int) {
-//         layer.draw { canvas in
-//             canvas.drawLine(from: Point(x: centerX + x, y: centerY + y), to: Point(x: centerX + x, y: centerY + y), data: color)
-//             canvas.drawLine(from: Point(x: centerX - x, y: centerY + y), to: Point(x: centerX - x, y: centerY + y), data: color)
-//             canvas.drawLine(from: Point(x: centerX + x, y: centerY - y), to: Point(x: centerX + x, y: centerY - y), data: color)
-//             canvas.drawLine(from: Point(x: centerX - x, y: centerY - y), to: Point(x: centerX - x, y: centerY - y), data: color)
-//         }
-//     }
-
-//     while xCoord <= a {
-//         drawOvalPoints(centerX: x, centerY: y, x: xCoord, y: yCoord)
-//         if decision < 0 {
-//             decision += 2 * b * b * xCoord + b * b
-//         } else {
-//             decision += 2 * b * b * xCoord - 2 * a * a * yCoord + a * a
-//             yCoord -= 1
-//         }
-//         xCoord += 1
-//     }
-// }
-
-
-// func drawPentagon(layer: Layer, x: Int, y: Int, radius: Int, color: UInt32) {
-//     let angleStep = 72.0 // 360 degrees divided by 5 sides
-//     var points: [Point] = []
-
-//     // Calculate the points of the pentagon
-//     for i in 0..<5 {
-//         let angle = Double(i) * angleStep
-//         let px = x + Int(Double(radius) * cos(angle * .pi / 180.0))
-//         let py = y + Int(Double(radius) * sin(angle * .pi / 180.0))
-//         points.append(Point(x: px, y: py))
-//     }
-
-//     // Draw lines between each consecutive point
-//     for i in 0..<5 {
-//         let start = points[i]
-//         let end = points[(i + 1) % 5]
-//         layer.draw { canvas in
-//             canvas.drawLine(from: start, to: end, data: color)
-//         }
-//     }
-// }
-
-
 // -----------------------------------------------------------------------------
 // MARK: - BrewUI Declarative Framework
 
@@ -211,69 +153,136 @@ public struct Frame {
     }
 }
 
+// -----------------------------------------------------------------------------
+// MARK: - Core View Protocol (View Rendering Only)
+
 // The drawing context provided during rendering.
 public struct BrewUIContext {
     public var layer: Layer
     public let width: Int
     public let height: Int
-    /// The currently highlighted (selected) button index.
-    public var selectedButtonIndex: Int
-    /// A counter that increments as each Button renders.
-    public var currentButtonIndex: Int = 0
+    public let selectionManager: SelectionManager?
     
-    public init(layer: Layer, width: Int, height: Int, selectedButtonIndex: Int) {
+    public init(
+        layer: Layer, 
+        width: Int, 
+        height: Int, 
+        selectionManager: SelectionManager? = nil
+    ) {
         self.layer = layer
         self.width = width
         self.height = height
-        self.selectedButtonIndex = selectedButtonIndex
+        self.selectionManager = selectionManager
     }
 }
 
-// The protocol for all BrewUI views.
+// The base protocol for all views - only concerned with rendering
 public protocol BrewView {
     /// Render the view into the drawing context.
     func render(in context: inout BrewUIContext)
-    /// If the view (or one of its descendants) is a Button, return its action
-    /// when the given “button index” is reached.
-    func actionForButton(at index: Int) -> (() -> Void)?
-    /// Count the number of Button views contained in this view.
-    func buttonCount() -> Int
 }
 
-// Provide default implementations.
-public extension BrewView {
-    func actionForButton(at index: Int) -> (() -> Void)? { return nil }
-    func buttonCount() -> Int { return 0 }
+// -----------------------------------------------------------------------------
+// MARK: - Interactive Components
+
+/// Interface for views that can be interacted with via selection
+/// (We're not using a protocol because of embedded Swift limitations)
+public struct InteractiveState {
+    public var isSelected: Bool = false
+    public var action: (() -> Void)?
+    
+    public init(isSelected: Bool = false, action: (() -> Void)? = nil) {
+        self.isSelected = isSelected
+        self.action = action
+    }
+}
+
+/// Manages selection state indices
+public struct SelectionManager {
+    /// Index of the currently selected view
+    private(set) var selectedIndex: Int = 0
+    
+    /// Total number of interactive items
+    private(set) var totalItems: Int = 0
+    
+    /// Actions for each interactive view
+    private var actions: [(() -> Void)?] = []
+    
+    /// Initialize with number of items
+    public init(itemCount: Int = 0) {
+        self.totalItems = itemCount
+    }
+    
+    /// Register a new item with its action
+    public mutating func register(action: (() -> Void)?) {
+        actions.append(action)
+        totalItems = actions.count
+    }
+    
+    /// Set the selection to a specific index
+    public mutating func select(index: Int) {
+        if totalItems > 0 {
+            selectedIndex = max(0, min(index, totalItems - 1))
+        }
+    }
+    
+    /// Get the total number of interactive views
+    public var count: Int {
+        return totalItems
+    }
+    
+    /// Get the action for the currently selected view
+    public var currentAction: (() -> Void)? {
+        guard !actions.isEmpty, selectedIndex < actions.count else {
+            return nil
+        }
+        return actions[selectedIndex]
+    }
+    
+    /// Get the selected state for a view at an index
+    public func isSelected(at index: Int) -> Bool {
+        return index == selectedIndex
+    }
 }
 
 // -----------------------------------------------------------------------------
 // MARK: - Type Eraser for BrewView
 // Because using a protocol with mutating/inout methods in an array causes
-// “embedded Swift” errors, we use a type eraser.
+// "embedded Swift" errors, we use a type eraser.
 
 public struct AnyBrewView: BrewView {
     private let _render: (inout BrewUIContext) -> Void
-    private let _actionForButton: (Int) -> (() -> Void)?
-    private let _buttonCount: () -> Int
-
+    private let _isButton: () -> Bool
+    private let _buttonAction: () -> (() -> Void)?
+    
     public init<V: BrewView>(_ view: V) {
         self._render = view.render
-        self._actionForButton = view.actionForButton
-        self._buttonCount = view.buttonCount
+        
+        // Check if this is a Button and store its action if it is
+        if let button = view as? Button {
+            self._isButton = { true }
+            self._buttonAction = { button.action }
+        } else {
+            self._isButton = { false }
+            self._buttonAction = { nil }
+        }
     }
-
+    
     public func render(in context: inout BrewUIContext) {
         _render(&context)
     }
-
-    public func actionForButton(at index: Int) -> (() -> Void)? {
-        return _actionForButton(index)
+    
+    public var isButton: Bool {
+        return _isButton()
     }
-
-    public func buttonCount() -> Int {
-        return _buttonCount()
+    
+    public var buttonAction: (() -> Void)? {
+        return _buttonAction()
     }
 }
+
+// We don't need a type eraser for interactive views anymore
+// as we're using a struct-based approach instead of protocols
 
 // -----------------------------------------------------------------------------
 // MARK: - BrewUI Result Builder
@@ -284,18 +293,23 @@ public struct BrewUIBuilder {
     public static func buildBlock(_ components: AnyBrewView...) -> [AnyBrewView] {
         return components
     }
+    
     public static func buildExpression<V: BrewView>(_ expression: V) -> AnyBrewView {
         return AnyBrewView(expression)
     }
+    
     public static func buildOptional(_ component: [AnyBrewView]?) -> [AnyBrewView] {
         return component ?? []
     }
+    
     public static func buildEither(first component: [AnyBrewView]) -> [AnyBrewView] {
         return component
     }
+    
     public static func buildEither(second component: [AnyBrewView]) -> [AnyBrewView] {
         return component
     }
+    
     public static func buildArray(_ components: [[AnyBrewView]]) -> [AnyBrewView] {
         return components.flatMap { $0 }
     }
@@ -317,35 +331,25 @@ public struct Group: BrewView {
             child.render(in: &context)
         }
     }
-    
-    public func actionForButton(at index: Int) -> (() -> Void)? {
-        var remaining = index
-        for child in children {
-            let count = child.buttonCount()
-            if remaining < count {
-                return child.actionForButton(at: remaining)
-            } else {
-                remaining -= count
-            }
-        }
-        return nil
-    }
-    
-    public func buttonCount() -> Int {
-        return children.reduce(0) { $0 + $1.buttonCount() }
-    }
 }
 
 // -----------------------------------------------------------------------------
 // MARK: - Button Primitive
-// The only currently supported UI element.
+// Has interactive properties but doesn't use protocol due to embedded Swift limitations
 
 public struct Button: BrewView {
     public let text: String?
     public let frame: Frame
     public let foregroundColor: UInt32 
     public let selectionColor: UInt32 
-    public let action: () -> Void
+    public let onAction: () -> Void
+    
+    // Static counter used during rendering to track button indices
+    static var currentButtonIndex = 0
+    
+    public var action: (() -> Void)? {
+        return onAction
+    }
     
     public init(
         text: String? = nil,
@@ -356,7 +360,7 @@ public struct Button: BrewView {
         self.frame = frame
         self.foregroundColor = Color.white.rawValue
         self.selectionColor = Color.yellow.rawValue
-        self.action = action
+        self.onAction = action
     }
 
     public init(
@@ -370,16 +374,21 @@ public struct Button: BrewView {
         self.frame = frame
         self.foregroundColor = foregroundColor
         self.selectionColor = selectionColor
-        self.action = action
+        self.onAction = action
     }
     
     public func render(in context: inout BrewUIContext) {
-        let index = context.currentButtonIndex
-        context.currentButtonIndex += 1
+        // Get the current button's index and increment the counter
+        let buttonIndex = Button.currentButtonIndex
+        Button.currentButtonIndex += 1
         
-        let color: UInt32 = (index == context.selectedButtonIndex) ?
-            selectionColor : foregroundColor
+        // Check if this button is selected
+        let isSelected = context.selectionManager?.isSelected(at: buttonIndex) ?? false
         
+        // Use the appropriate color based on selection
+        let color: UInt32 = isSelected ? selectionColor : foregroundColor
+        
+        // Draw the button
         drawRectangle(layer: context.layer,
                       x: frame.x,
                       y: frame.y,
@@ -395,27 +404,6 @@ public struct Button: BrewView {
                 font: Font(path: "/lfs/Resources/Fonts/Roboto-Regular.ttf", pointSize: 8, dpi: 220),
                 color: color)
         }
-
-                      
-        // drawCircle(layer: context.layer,
-        //     x: frame.x,
-        //     y: frame.y,
-        //     radius: 10,
-        //     color: color)
-        // drawTriangle(layer: context.layer,
-        //     x0: frame.x, y0: frame.y,
-        //     x1: frame.x + 5, y1: frame.y - 5,
-        //     x2: frame.x - 5, y2: frame.y - 5,
-        //     color: color
-        // )
-    }
-    
-    public func actionForButton(at index: Int) -> (() -> Void)? {
-        return (index == 0) ? action : nil
-    }
-    
-    public func buttonCount() -> Int {
-        return 1
     }
 }
 
@@ -448,11 +436,46 @@ public struct Text: BrewView {
 }
 
 // -----------------------------------------------------------------------------
+// MARK: - View Collection Functions
+// These functions collect interactive elements and build a selection manager
+
+/// Collect interactive views from a Group
+public func collectInteractiveViewsFromGroup(_ group: Group) -> SelectionManager {
+    var selectionManager = SelectionManager()
+    
+    for child in group.children {
+        // Check if the AnyBrewView wraps a Button
+        if child.isButton {
+            selectionManager.register(action: child.buttonAction)
+        }
+        
+        // Other container types could be handled here
+        // For example, if we added nested groups
+    }
+    
+    return selectionManager
+}
+
+/// Collect interactive views from any view (currently only supports Button and Group)
+public func collectInteractiveViews<T: BrewView>(from view: T) -> SelectionManager {
+    if let group = view as? Group {
+        return collectInteractiveViewsFromGroup(group)
+    } else if let button = view as? Button {
+        var selectionManager = SelectionManager()
+        selectionManager.register(action: button.action)
+        return selectionManager
+    }
+    
+    return SelectionManager()
+}
+
+// -----------------------------------------------------------------------------
 // MARK: - BrewUIApp: The Declarative UI Runner
-// This is the “engine” that runs the UI event loop.
+// This is the "engine" that runs the UI event loop.
 
 public struct BrewUIApp<Content: BrewView> {
     let content: Content
+    var selectionManager: SelectionManager
     
     // Hardware and display components.
     let pot: AnalogIn
@@ -479,68 +502,117 @@ public struct BrewUIApp<Content: BrewView> {
         self.layer = layer
         self.screenBuffer = screenBuffer
         self.frameBuffer = frameBuffer
+        
+        // Initialize the selection manager
+        self.selectionManager = SelectionManager()
+        
+        // Do a trial render to collect buttons and their actions
+        var tempContext = BrewUIContext(
+            layer: layer,
+            width: screen.width,
+            height: screen.height,
+            selectionManager: nil
+        )
+        
+        // Reset the button counter before rendering
+        Button.currentButtonIndex = 0
+        
+        // Render to collect buttons
+        content.render(in: &tempContext)
+        
+        // Create a selection manager with the correct number of buttons
+        self.selectionManager = SelectionManager(itemCount: Button.currentButtonIndex)
+        
+        // Reset the button counter again
+        Button.currentButtonIndex = 0
+        
+        // Render again to register button actions
+        content.render(in: &tempContext)
     }
     
     // Marked as mutating because we update self's buffers.
     public mutating func run() -> Never {
-        let totalButtons = content.buttonCount()
         var lastSelectedIndex = -1
         
         while true {
-            // 1) Map the potentiometer value to a button index.
-            let rawValue = pot.readRawValue()
-            let mapped = Int(Float(rawValue) * Float(totalButtons) / Float(pot.maxRawValue))
-            let clampedIndex = max(0, min(mapped, totalButtons - 1))
-            
-            // 2) If the highlighted button changed, play a selection beep.
-            if clampedIndex != lastSelectedIndex {
-                buzzer.set(frequency: 440, dutycycle: 0.5)
-                sleep(ms: 100)
-                buzzer.suspend()
-                lastSelectedIndex = clampedIndex
-            }
-            
-            // 3) Clear and re-render the view hierarchy.
-            clearScreen(layer: layer, width: screen.width, height: screen.height)
-            var context = BrewUIContext(layer: layer,
-                                        width: screen.width,
-                                        height: screen.height,
-                                        selectedButtonIndex: clampedIndex)
-            content.render(in: &context)
-            
-            // Copy buffers locally to avoid overlapping access to self's properties.
-            var fb = frameBuffer
-            var sb = screenBuffer
-            layer.render(
-                into: &fb,
-                output: &sb,
-                transform: Color.getRGB565LE
-            ) { dirty, data in
-                screen.writeBitmap(
-                    x: dirty.x,
-                    y: dirty.y,
-                    width: dirty.width,
-                    height: dirty.height,
-                    data: data
-                )
-            }
-            frameBuffer = fb
-            screenBuffer = sb
-            
-            // 4) If the hardware button is pressed, activate the selected button.
-            if hwButton.read() {
-                if let action = content.actionForButton(at: clampedIndex) {
-                    buzzer.set(frequency: 880, dutycycle: 0.5)
+            if selectionManager.count > 0 {
+                // 1) Map the potentiometer value to a selection index
+                let rawValue = pot.readRawValue()
+                let totalItems = selectionManager.count
+                let mapped = Int(Float(rawValue) * Float(totalItems) / Float(pot.maxRawValue))
+                let clampedIndex = max(0, min(mapped, totalItems - 1))
+                
+                // 2) If the selected item changed, play a selection beep
+                if clampedIndex != lastSelectedIndex {
+                    buzzer.set(frequency: 440, dutycycle: 0.5)
                     sleep(ms: 100)
                     buzzer.suspend()
-                    action()
+                    lastSelectedIndex = clampedIndex
+                    
+                    // Update the selection
+                    selectionManager.select(index: clampedIndex)
                 }
-                // Wait for button release to avoid multiple activations.
-                while hwButton.read() {
-                    sleep(ms: 10)
+                
+                // 3) Render the content
+                renderContent()
+                
+                // 4) If the hardware button is pressed, activate the selected item
+                if hwButton.read() {
+                    if let action = selectionManager.currentAction {
+                        buzzer.set(frequency: 880, dutycycle: 0.5)
+                        sleep(ms: 100)
+                        buzzer.suspend()
+                        action()
+                    }
+                    // Wait for button release to avoid multiple activations
+                    while hwButton.read() {
+                        sleep(ms: 10)
+                    }
                 }
+            } else {
+                // No interactive views, just render the content
+                renderContent()
             }
+            
             sleep(ms: 50)
         }
+    }
+    
+    private mutating func renderContent() {
+        // Clear the screen
+        clearScreen(layer: layer, width: screen.width, height: screen.height)
+        
+        // Reset button counter before each render
+        Button.currentButtonIndex = 0
+        
+        // Create render context
+        var context = BrewUIContext(
+            layer: layer,
+            width: screen.width,
+            height: screen.height,
+            selectionManager: selectionManager
+        )
+        
+        // Render the content
+        content.render(in: &context)
+        
+        // Copy buffers locally to avoid overlapping access to self's properties
+        var fb = frameBuffer
+        var sb = screenBuffer
+        layer.render(
+            into: &fb,
+            output: &sb,
+            transform: Color.getRGB565LE
+        ) { dirty, data in
+            screen.writeBitmap(
+                x: dirty.x,
+                y: dirty.y,
+                width: dirty.width,
+                height: dirty.height,
+                data: data
+            )
+        }
+        frameBuffer = fb
+        screenBuffer = sb
     }
 }
