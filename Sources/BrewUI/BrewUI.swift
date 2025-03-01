@@ -24,9 +24,15 @@ func drawText(layer: Layer,
               text: String,
               font: Font,
               color: UInt32) {
-    let c = Color(color)
-    let text = TextLayer(at: Point(x: x, y: y), anchorPoint: UnitPoint.center, string: text, font: font, foregroundColor: c)
-    layer.append(text)
+    let mask = font.getMask(text);
+    layer.draw { canvas in
+        canvas.blend(
+            from: mask,
+            foregroundColor: Color(color),
+            to: Point(x: x, y: y)
+        )
+
+    }
 }
 
 func drawRectangle(layer: Layer,
