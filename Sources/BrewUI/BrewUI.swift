@@ -162,8 +162,6 @@ public struct Frame {
         self.width = width
         self.height = height
     }
-
-    
 }
 
 // -----------------------------------------------------------------------------
@@ -631,8 +629,18 @@ public protocol FramedView {
 extension Button: FramedView {}
 extension Text: FramedView {}
 
+// MARK: EmptyView
+// A no-op view to use in conditionals.
+public struct EmptyView: BrewView, FramedView, OffsetRenderable {
+    public let frame: Frame = Frame(x: 0, y: 0, width: 0, height: 0)
+    public func render(in context: inout BrewUIContext) { }
+    public func render(withOffsetX offsetX: Int, offsetY: Int, in context: inout BrewUIContext) { }
+
+    public init() { }
+}
+
 // MARK: OffsetRenderable Protocol
-// (Already declared above; extended here to ensure Button and Text support offset rendering.)
+// Ensures that Button and Text support offset rendering.
 public protocol OffsetRenderable: BrewView {
     func render(withOffsetX offsetX: Int, offsetY: Int, in context: inout BrewUIContext)
 }
@@ -692,8 +700,11 @@ public struct AnyFramedView: BrewView, FramedView, OffsetRenderable {
 // MARK: FramedViewBuilder Result Builder
 @resultBuilder
 public struct FramedViewBuilder {
-    public static func buildBlock(_ components: AnyFramedView...) -> [AnyFramedView] {
-        return components
+    public static func buildBlock(_ components: [AnyFramedView]...) -> [AnyFramedView] {
+        return components.flatMap { $0 }
+    }
+    public static func buildExpression(_ expression: AnyFramedView) -> [AnyFramedView] {
+        return [expression]
     }
     public static func buildOptional(_ component: [AnyFramedView]?) -> [AnyFramedView] {
         return component ?? []

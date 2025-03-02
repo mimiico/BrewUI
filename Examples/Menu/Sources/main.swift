@@ -7,17 +7,15 @@ import ST7789
 import MadGraphics
 import BrewUI
 
-// Define an EmptyView for conditionals.
-struct EmptyView: BrewView, FramedView, OffsetRenderable {
-    let frame: Frame = Frame(x: 0, y: 0, width: 0, height: 0)
-    func render(in context: inout BrewUIContext) { }
-    func render(withOffsetX offsetX: Int, offsetY: Int, in context: inout BrewUIContext) { }
+class ContentViewModel {
+    var showExtraOption: Bool = false
 }
 
 // -----------------------------------------------------------------------------
 // MARK: - Sample Usage: ContentView and App Launch
 // This sample content view is written using the new flexible layout system.
 struct ContentView: BrewView {
+    let viewModel = ContentViewModel()
     // Declare the UI in a computed property, similar to SwiftUI.
     var body: some BrewView {
         VStack(spacing: 10, alignment: .center) {
@@ -29,14 +27,14 @@ struct ContentView: BrewView {
                                  frame: Frame(x: 0, y: 0, width: 200, height: 30)) {
                 print("Option B selected")
             })
-            AnyFramedView(Button(text: "Option C",
+            AnyFramedView(Button(text: "More",
                                  frame: Frame(x: 0, y: 0, width: 200, height: 30),
                                  foregroundColor: Color.blue.rawValue) {
-                print("Option C selected")
+                print("More selected")
+                viewModel.showExtraOption.toggle()
             })
-            // Conditional UI logic:
-            // If the condition is true, show the extra button; otherwise, show an EmptyView.
-            if true { // Replace 'true' with your condition (e.g., showExtraOption)
+
+            if viewModel.showExtraOption { 
                 AnyFramedView(Button(text: "Extra Option",
                                      frame: Frame(x: 0, y: 0, width: 200, height: 30),
                                      foregroundColor: Color.green.rawValue) {
