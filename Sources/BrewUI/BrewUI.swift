@@ -209,50 +209,43 @@ public struct InteractiveState {
 }
 
 /// Manages selection state indices.
-public struct SelectionManager {
-    /// Index of the currently selected view.
-    private(set) var selectedIndex: Int = 0
-
-    /// Total number of interactive items.
-    private(set) var totalItems: Int = 0
-
-    /// Actions for each interactive view.
+final public class SelectionManager {
+    public private(set) var selectedIndex: Int = 0
+    public private(set) var totalItems: Int = 0
     private var actions: [(() -> Void)?] = []
-
-    /// Initialize with number of items.
-    public init(itemCount: Int = 0) {
-        self.totalItems = itemCount
-    }
-
-    /// Register a new item with its action.
-    public mutating func register(action: (() -> Void)?) {
+    
+    public init() { }
+    
+    public func register(action: (() -> Void)?) {
         actions.append(action)
         totalItems = actions.count
     }
-
-    /// Set the selection to a specific index.
-    public mutating func select(index: Int) {
+    
+    public func select(index: Int) {
         if totalItems > 0 {
             selectedIndex = max(0, min(index, totalItems - 1))
         }
     }
-
-    /// Get the total number of interactive views.
+    
     public var count: Int {
         return totalItems
     }
-
-    /// Get the action for the currently selected view.
+    
     public var currentAction: (() -> Void)? {
         guard !actions.isEmpty, selectedIndex < actions.count else {
             return nil
         }
         return actions[selectedIndex]
     }
-
-    /// Get the selected state for a view at an index.
+    
     public func isSelected(at index: Int) -> Bool {
         return index == selectedIndex
+    }
+    
+    /// Clear all registered actions for the next render pass.
+    public func reset() {
+        actions.removeAll()
+        totalItems = 0
     }
 }
 
@@ -387,9 +380,8 @@ public struct Button: BrewView {
         Button.currentButtonIndex += 1
 
         // Register this button's action with the selection manager if available.
-        if var selManager = context.selectionManager, buttonIndex >= selManager.totalItems {
+        if let selManager = context.selectionManager, buttonIndex >= selManager.totalItems {
             selManager.register(action: action)
-            context.selectionManager = selManager
         }
 
         // Check if this button is selected.
@@ -400,19 +392,19 @@ public struct Button: BrewView {
 
         // Draw the button.
         fillRectangle(layer: context.layer,
-                      x: frame.x,
-                      y: frame.y,
-                      width: frame.width,
-                      height: frame.height,
-                      color: color)
+                    x: frame.x,
+                    y: frame.y,
+                    width: frame.width,
+                    height: frame.height,
+                    color: color)
 
         if let text = text {
             drawText(layer: context.layer,
-                     x: frame.x + 5,
-                     y: frame.y + 5,
-                     text: text,
-                     font: Font(path: "/lfs/Resources/Fonts/Roboto-Regular.ttf", pointSize: 8, dpi: 220),
-                     color: Color.black.rawValue)
+                    x: frame.x + 5,
+                    y: frame.y + 5,
+                    text: text,
+                    font: Font(path: "/lfs/Resources/Fonts/Roboto-Regular.ttf", pointSize: 8, dpi: 220),
+                    color: Color.black.rawValue)
         }
     }
 }
@@ -448,7 +440,7 @@ public struct Text: BrewView {
 // MARK: - View Collection Functions
 // These functions collect interactive elements and build a selection manager.
 public func collectInteractiveViewsFromGroup(_ group: Group) -> SelectionManager {
-    var selectionManager = SelectionManager()
+    let selectionManager = SelectionManager()
     for child in group.children {
         // Check if the AnyBrewView wraps a Button.
         if child.isButton {
@@ -463,7 +455,7 @@ public func collectInteractiveViews<T: BrewView>(from view: T) -> SelectionManag
     if let group = view as? Group {
         return collectInteractiveViewsFromGroup(group)
     } else if let button = view as? Button {
-        var selectionManager = SelectionManager()
+        let selectionManager = SelectionManager()
         selectionManager.register(action: button.action)
         return selectionManager
     }
@@ -573,24 +565,53 @@ public struct BrewUIApp<Content: BrewView> {
     }
 
     private mutating func renderContent() {
+        // === First Pass: Collect Interactive Items (No drawing) ===
+        
+        // Reset the selection manager so that only visible buttons are registered.
+        selectionManager.reset()
+        
+        // Reset button counter so that registration starts fresh.
+        Button.currentButtonIndex = 0
+        
+        // Create a dummy context using the existing selection manager.
+        var dummyContext = BrewUIContext(
+            layer: layer,
+            width: screen.width,
+            height: screen.height,
+            selectionManager: selectionManager
+        )
+        
+        // Render the content to register visible interactive items.
+        content.render(in: &dummyContext)
+        
+        // Preserve and clamp the previous selection index.
+        let previousSelectedIndex = selectionManager.selectedIndex
+        if previousSelectedIndex < selectionManager.totalItems {
+            selectionManager.select(index: previousSelectedIndex)
+        } else if selectionManager.totalItems > 0 {
+            selectionManager.select(index: selectionManager.totalItems - 1)
+        }
+        
+        // === Second Pass: Actual Drawing with Updated Selection Manager ===
+        
         // Clear the screen.
         clearScreen(layer: layer, width: screen.width, height: screen.height)
-
-        // Reset button counter before each render.
+        
+        // Reset button counter again for the drawing pass.
         Button.currentButtonIndex = 0
-
-        // Create render context.
+        
+        // Create a render context with the updated selection manager.
         var context = BrewUIContext(
             layer: layer,
             width: screen.width,
             height: screen.height,
             selectionManager: selectionManager
         )
-
-        // Render the content.
+        
+        // Render the content for real.
         content.render(in: &context)
-
-        // Copy buffers locally to avoid overlapping access to self's properties.
+        
+        // Render the final image to the display.
         var fb = frameBuffer
         var sb = screenBuffer
         layer.render(
