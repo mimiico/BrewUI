@@ -24,7 +24,7 @@ func drawText(layer: Layer,
               text: String,
               font: Font,
               color: UInt32) {
-    let mask = font.getMask(text);
+    let mask = font.getMask(text)
     layer.draw { canvas in
         canvas.blend(
             from: mask,
@@ -81,7 +81,6 @@ func drawRectangle(layer: Layer,
     }
 }
 
-
 func drawTriangle(layer: Layer,
                    x0: Int, y0: Int,
                    x1: Int, y1: Int,
@@ -95,7 +94,6 @@ func drawTriangle(layer: Layer,
             data: color
         )
     }
-
     // Right Line
     layer.draw { canvas in
         canvas.drawLine(
@@ -104,7 +102,6 @@ func drawTriangle(layer: Layer,
             data: color
         )
     }
-
     // Bottom Line
     layer.draw { canvas in
         canvas.drawLine(
@@ -117,29 +114,29 @@ func drawTriangle(layer: Layer,
 
 func drawPolygon(layer: Layer, points: [Point], radius: Int, color: UInt32) {
     // Draw line combinations consists of two points
-        for index in 0..<points.count{
-                let pointA = points[index]
-                let pointB: Point
-                if index != points.count - 1 {
-                    pointB = points[index + 1]
-                } else {
-                    pointB = points[0]
-                }
-                layer.draw { canvas in
-                    canvas.drawLine(
-                        from: Point(x: pointA.x, y: pointA.y),
-                        to: Point(x: pointB.x, y: pointB.y),
-                        data: color
-                    )
-                }
-            }
+    for index in 0..<points.count {
+        let pointA = points[index]
+        let pointB: Point
+        if index != points.count - 1 {
+            pointB = points[index + 1]
+        } else {
+            pointB = points[0]
+        }
+        layer.draw { canvas in
+            canvas.drawLine(
+                from: Point(x: pointA.x, y: pointA.y),
+                to: Point(x: pointB.x, y: pointB.y),
+                data: color
+            )
+        }
+    }
 }
 
 func drawCircle(layer: Layer, x: Int, y: Int, radius: Int, color: UInt32) {
     layer.draw { canvas in
         canvas.fillCircle(
-            at: Point(x: x, y: y), 
-            radius: radius, 
+            at: Point(x: x, y: y),
+            radius: radius,
             data: color
         )
     }
@@ -154,13 +151,19 @@ public struct Frame {
     public let y: Int
     public let width: Int
     public let height: Int
-    
+
+    public init(width: Int, height: Int) {
+        self.init(x: 0, y: 0, width: width, height: height)
+    }
+
     public init(x: Int, y: Int, width: Int, height: Int) {
         self.x = x
         self.y = y
         self.width = width
         self.height = height
     }
+
+    
 }
 
 // -----------------------------------------------------------------------------
@@ -172,11 +175,11 @@ public struct BrewUIContext {
     public let width: Int
     public let height: Int
     public var selectionManager: SelectionManager?
-    
+
     public init(
-        layer: Layer, 
-        width: Int, 
-        height: Int, 
+        layer: Layer,
+        width: Int,
+        height: Int,
         selectionManager: SelectionManager? = nil
     ) {
         self.layer = layer
@@ -186,7 +189,7 @@ public struct BrewUIContext {
     }
 }
 
-// The base protocol for all views - only concerned with rendering
+// The base protocol for all views - only concerned with rendering.
 public protocol BrewView {
     /// Render the view into the drawing context.
     func render(in context: inout BrewUIContext)
@@ -195,61 +198,61 @@ public protocol BrewView {
 // -----------------------------------------------------------------------------
 // MARK: - Interactive Components
 
-/// Interface for views that can be interacted with via selection
+/// Interface for views that can be interacted with via selection.
 /// (We're not using a protocol because of embedded Swift limitations)
 public struct InteractiveState {
     public var isSelected: Bool = false
     public var action: (() -> Void)?
-    
+
     public init(isSelected: Bool = false, action: (() -> Void)? = nil) {
         self.isSelected = isSelected
         self.action = action
     }
 }
 
-/// Manages selection state indices
+/// Manages selection state indices.
 public struct SelectionManager {
-    /// Index of the currently selected view
+    /// Index of the currently selected view.
     private(set) var selectedIndex: Int = 0
-    
-    /// Total number of interactive items
+
+    /// Total number of interactive items.
     private(set) var totalItems: Int = 0
-    
-    /// Actions for each interactive view
+
+    /// Actions for each interactive view.
     private var actions: [(() -> Void)?] = []
-    
-    /// Initialize with number of items
+
+    /// Initialize with number of items.
     public init(itemCount: Int = 0) {
         self.totalItems = itemCount
     }
-    
-    /// Register a new item with its action
+
+    /// Register a new item with its action.
     public mutating func register(action: (() -> Void)?) {
         actions.append(action)
         totalItems = actions.count
     }
-    
-    /// Set the selection to a specific index
+
+    /// Set the selection to a specific index.
     public mutating func select(index: Int) {
         if totalItems > 0 {
             selectedIndex = max(0, min(index, totalItems - 1))
         }
     }
-    
-    /// Get the total number of interactive views
+
+    /// Get the total number of interactive views.
     public var count: Int {
         return totalItems
     }
-    
-    /// Get the action for the currently selected view
+
+    /// Get the action for the currently selected view.
     public var currentAction: (() -> Void)? {
         guard !actions.isEmpty, selectedIndex < actions.count else {
             return nil
         }
         return actions[selectedIndex]
     }
-    
-    /// Get the selected state for a view at an index
+
+    /// Get the selected state for a view at an index.
     public func isSelected(at index: Int) -> Bool {
         return index == selectedIndex
     }
@@ -259,16 +262,15 @@ public struct SelectionManager {
 // MARK: - Type Eraser for BrewView
 // Because using a protocol with mutating/inout methods in an array causes
 // "embedded Swift" errors, we use a type eraser.
-
 public struct AnyBrewView: BrewView {
     private let _render: (inout BrewUIContext) -> Void
     private let _isButton: () -> Bool
     private let _buttonAction: () -> (() -> Void)?
-    
+
     public init<V: BrewView>(_ view: V) {
         self._render = view.render
-        
-        // Check if this is a Button and store its action if it is
+
+        // Check if this is a Button and store its action if it is.
         if let button = view as? Button {
             self._isButton = { true }
             self._buttonAction = { button.action }
@@ -277,49 +279,45 @@ public struct AnyBrewView: BrewView {
             self._buttonAction = { nil }
         }
     }
-    
+
     public func render(in context: inout BrewUIContext) {
         _render(&context)
     }
-    
+
     public var isButton: Bool {
         return _isButton()
     }
-    
+
     public var buttonAction: (() -> Void)? {
         return _buttonAction()
     }
 }
 
-// We don't need a type eraser for interactive views anymore
-// as we're using a struct-based approach instead of protocols
-
 // -----------------------------------------------------------------------------
 // MARK: - BrewUI Result Builder
 // This result builder lets you compose views in a SwiftUI-like way.
-
 @resultBuilder
 public struct BrewUIBuilder {
     public static func buildBlock(_ components: AnyBrewView...) -> [AnyBrewView] {
         return components
     }
-    
+
     public static func buildExpression<V: BrewView>(_ expression: V) -> AnyBrewView {
         return AnyBrewView(expression)
     }
-    
+
     public static func buildOptional(_ component: [AnyBrewView]?) -> [AnyBrewView] {
         return component ?? []
     }
-    
+
     public static func buildEither(first component: [AnyBrewView]) -> [AnyBrewView] {
         return component
     }
-    
+
     public static func buildEither(second component: [AnyBrewView]) -> [AnyBrewView] {
         return component
     }
-    
+
     public static func buildArray(_ components: [[AnyBrewView]]) -> [AnyBrewView] {
         return components.flatMap { $0 }
     }
@@ -328,14 +326,13 @@ public struct BrewUIBuilder {
 // -----------------------------------------------------------------------------
 // MARK: - Group Container
 // A container that simply groups its children.
-
 public struct Group: BrewView {
     public let children: [AnyBrewView]
-    
+
     public init(@BrewUIBuilder _ content: () -> [AnyBrewView]) {
         self.children = content()
     }
-    
+
     public func render(in context: inout BrewUIContext) {
         for child in children {
             child.render(in: &context)
@@ -345,22 +342,21 @@ public struct Group: BrewView {
 
 // -----------------------------------------------------------------------------
 // MARK: - Button Primitive
-// Has interactive properties but doesn't use protocol due to embedded Swift limitations
-
+// Has interactive properties but doesn't use protocol due to embedded Swift limitations.
 public struct Button: BrewView {
     public let text: String?
     public let frame: Frame
-    public let foregroundColor: UInt32 
-    public let selectionColor: UInt32 
+    public let foregroundColor: UInt32
+    public let selectionColor: UInt32
     public let onAction: () -> Void
-    
-    // Static counter used during rendering to track button indices
+
+    // Static counter used during rendering to track button indices.
     static var currentButtonIndex = 0
-    
+
     public var action: (() -> Void)? {
         return onAction
     }
-    
+
     public init(
         text: String? = nil,
         frame: Frame,
@@ -386,25 +382,25 @@ public struct Button: BrewView {
         self.selectionColor = selectionColor
         self.onAction = action
     }
-    
+
     public func render(in context: inout BrewUIContext) {
-        // Get the current button's index and increment the counter
+        // Get the current button's index and increment the counter.
         let buttonIndex = Button.currentButtonIndex
         Button.currentButtonIndex += 1
-        
-        // Register this button's action with the selection manager if available
+
+        // Register this button's action with the selection manager if available.
         if var selManager = context.selectionManager, buttonIndex >= selManager.totalItems {
             selManager.register(action: action)
             context.selectionManager = selManager
         }
-        
-        // Check if this button is selected
+
+        // Check if this button is selected.
         let isSelected = context.selectionManager?.isSelected(at: buttonIndex) ?? false
-        
-        // Use the appropriate color based on selection
+
+        // Use the appropriate color based on selection.
         let color: UInt32 = isSelected ? selectionColor : foregroundColor
-        
-        // Draw the button
+
+        // Draw the button.
         fillRectangle(layer: context.layer,
                       x: frame.x,
                       y: frame.y,
@@ -414,11 +410,11 @@ public struct Button: BrewView {
 
         if let text = text {
             drawText(layer: context.layer,
-                x: frame.x + 5,
-                y: frame.y + 5,
-                text: text,
-                font: Font(path: "/lfs/Resources/Fonts/Roboto-Regular.ttf", pointSize: 8, dpi: 220),
-                color: Color.black.rawValue)
+                     x: frame.x + 5,
+                     y: frame.y + 5,
+                     text: text,
+                     font: Font(path: "/lfs/Resources/Fonts/Roboto-Regular.ttf", pointSize: 8, dpi: 220),
+                     color: Color.black.rawValue)
         }
     }
 }
@@ -426,7 +422,7 @@ public struct Button: BrewView {
 public struct Text: BrewView {
     public let text: String
     public let frame: Frame
-    public let foregroundColor: UInt32 
+    public let foregroundColor: UInt32
     public let pointSize: Int = 8
 
     public init(
@@ -441,7 +437,6 @@ public struct Text: BrewView {
 
     public func render(in context: inout BrewUIContext) {
         let font = Font(path: "/lfs/Resources/Fonts/Roboto-Regular.ttf", pointSize: pointSize, dpi: 220)
-
         drawText(layer: context.layer,
                  x: frame.x,
                  y: frame.y,
@@ -453,26 +448,19 @@ public struct Text: BrewView {
 
 // -----------------------------------------------------------------------------
 // MARK: - View Collection Functions
-// These functions collect interactive elements and build a selection manager
-
-/// Collect interactive views from a Group
+// These functions collect interactive elements and build a selection manager.
 public func collectInteractiveViewsFromGroup(_ group: Group) -> SelectionManager {
     var selectionManager = SelectionManager()
-    
     for child in group.children {
-        // Check if the AnyBrewView wraps a Button
+        // Check if the AnyBrewView wraps a Button.
         if child.isButton {
             selectionManager.register(action: child.buttonAction)
         }
-        
-        // Other container types could be handled here
-        // For example, if we added nested groups
+        // Other container types could be handled here (e.g. nested groups).
     }
-    
     return selectionManager
 }
 
-/// Collect interactive views from any view (currently only supports Button and Group)
 public func collectInteractiveViews<T: BrewView>(from view: T) -> SelectionManager {
     if let group = view as? Group {
         return collectInteractiveViewsFromGroup(group)
@@ -481,18 +469,16 @@ public func collectInteractiveViews<T: BrewView>(from view: T) -> SelectionManag
         selectionManager.register(action: button.action)
         return selectionManager
     }
-    
     return SelectionManager()
 }
 
 // -----------------------------------------------------------------------------
 // MARK: - BrewUIApp: The Declarative UI Runner
 // This is the "engine" that runs the UI event loop.
-
 public struct BrewUIApp<Content: BrewView> {
-    let content: Content
+    var content: Content
     var selectionManager: SelectionManager
-    
+
     // Hardware and display components.
     let pot: AnalogIn
     let hwButton: DigitalIn
@@ -501,7 +487,7 @@ public struct BrewUIApp<Content: BrewView> {
     var layer: Layer
     var screenBuffer: [UInt16]
     var frameBuffer: [UInt32]
-    
+
     public init(content: Content,
                 pot: AnalogIn,
                 hwButton: DigitalIn,
@@ -518,57 +504,56 @@ public struct BrewUIApp<Content: BrewView> {
         self.layer = layer
         self.screenBuffer = screenBuffer
         self.frameBuffer = frameBuffer
-        
-        // Initialize the selection manager
+
+        // Initialize the selection manager.
         self.selectionManager = SelectionManager()
-        
-        // Reset the button counter before rendering
+
+        // Reset the button counter before rendering.
         Button.currentButtonIndex = 0
-        
-        // Create a context with our selection manager for the initial render
+
+        // Create a context with our selection manager for the initial render.
         var initialContext = BrewUIContext(
             layer: layer,
             width: screen.width,
             height: screen.height,
             selectionManager: self.selectionManager
         )
-        
-        // Render once to register all buttons and their actions
+
+        // Render once to register all buttons and their actions.
         content.render(in: &initialContext)
-        
-        // Update our selection manager with the one that was modified during rendering
+
+        // Update our selection manager with the one that was modified during rendering.
         if let updatedManager = initialContext.selectionManager {
             self.selectionManager = updatedManager
         }
     }
-    
+
     // Marked as mutating because we update self's buffers.
     public mutating func run() -> Never {
         var lastSelectedIndex = -1
-        
+
         while true {
             if selectionManager.count > 0 {
-                // 1) Map the potentiometer value to a selection index
+                // 1) Map the potentiometer value to a selection index.
                 let rawValue = pot.readRawValue()
                 let totalItems = selectionManager.count
                 let mapped = Int(Float(rawValue) * Float(totalItems) / Float(pot.maxRawValue))
                 let clampedIndex = max(0, min(mapped, totalItems - 1))
-                
-                // 2) If the selected item changed, play a selection beep
+
+                // 2) If the selected item changed, play a selection beep.
                 if clampedIndex != lastSelectedIndex {
                     buzzer.set(frequency: 440, dutycycle: 0.5)
                     sleep(ms: 100)
                     buzzer.suspend()
                     lastSelectedIndex = clampedIndex
-                    
-                    // Update the selection
+                    // Update the selection.
                     selectionManager.select(index: clampedIndex)
                 }
-                
-                // 3) Render the content
+
+                // 3) Render the content.
                 renderContent()
-                
-                // 4) If the hardware button is pressed, activate the selected item
+
+                // 4) If the hardware button is pressed, activate the selected item.
                 if hwButton.read() {
                     if let action = selectionManager.currentAction {
                         buzzer.set(frequency: 880, dutycycle: 0.5)
@@ -576,39 +561,38 @@ public struct BrewUIApp<Content: BrewView> {
                         buzzer.suspend()
                         action()
                     }
-                    // Wait for button release to avoid multiple activations
+                    // Wait for button release to avoid multiple activations.
                     while hwButton.read() {
                         sleep(ms: 10)
                     }
                 }
             } else {
-                // No interactive views, just render the content
+                // No interactive views, just render the content.
                 renderContent()
             }
-            
             sleep(ms: 50)
         }
     }
-    
+
     private mutating func renderContent() {
-        // Clear the screen
+        // Clear the screen.
         clearScreen(layer: layer, width: screen.width, height: screen.height)
-        
-        // Reset button counter before each render
+
+        // Reset button counter before each render.
         Button.currentButtonIndex = 0
-        
-        // Create render context
+
+        // Create render context.
         var context = BrewUIContext(
             layer: layer,
             width: screen.width,
             height: screen.height,
             selectionManager: selectionManager
         )
-        
-        // Render the content
+
+        // Render the content.
         content.render(in: &context)
-        
-        // Copy buffers locally to avoid overlapping access to self's properties
+
+        // Copy buffers locally to avoid overlapping access to self's properties.
         var fb = frameBuffer
         var sb = screenBuffer
         layer.render(
@@ -626,5 +610,184 @@ public struct BrewUIApp<Content: BrewView> {
         }
         frameBuffer = fb
         screenBuffer = sb
+    }
+}
+
+// -----------------------------------------------------------------------------
+// MARK: - New Flexible Layout System
+// This new layout system supports mixing Buttons, Text, and other BrewViews
+// in declarative containers (VStack, HStack, ZStack) with conditional logic.
+
+// Define the StackAlignment type.
+public enum StackAlignment {
+    case leading, center, trailing
+}
+
+// MARK: FramedView Protocol
+// Require that a view provides its intrinsic frame.
+public protocol FramedView {
+    var frame: Frame { get }
+}
+extension Button: FramedView {}
+extension Text: FramedView {}
+
+// MARK: OffsetRenderable Protocol
+// (Already declared above; extended here to ensure Button and Text support offset rendering.)
+public protocol OffsetRenderable: BrewView {
+    func render(withOffsetX offsetX: Int, offsetY: Int, in context: inout BrewUIContext)
+}
+extension Button: OffsetRenderable {
+    public func render(withOffsetX offsetX: Int, offsetY: Int, in context: inout BrewUIContext) {
+        let offsetFrame = Frame(
+            x: self.frame.x + offsetX,
+            y: self.frame.y + offsetY,
+            width: self.frame.width,
+            height: self.frame.height
+        )
+        let offsetButton = Button(
+            text: self.text,
+            frame: offsetFrame,
+            foregroundColor: self.foregroundColor,
+            selectionColor: self.selectionColor,
+            action: self.action ?? {}
+        )
+        offsetButton.render(in: &context)
+    }
+}
+extension Text: OffsetRenderable {
+    public func render(withOffsetX offsetX: Int, offsetY: Int, in context: inout BrewUIContext) {
+        let offsetFrame = Frame(
+            x: self.frame.x + offsetX,
+            y: self.frame.y + offsetY,
+            width: self.frame.width,
+            height: self.frame.height
+        )
+        let offsetText = Text(self.text, frame: offsetFrame, foregroundColor: self.foregroundColor)
+        offsetText.render(in: &context)
+    }
+}
+
+// MARK: AnyFramedView Type Eraser
+// Erases the concrete type of any BrewView that conforms to FramedView and OffsetRenderable.
+public struct AnyFramedView: BrewView, FramedView, OffsetRenderable {
+    private let _render: (inout BrewUIContext) -> Void
+    private let _renderOffset: (Int, Int, inout BrewUIContext) -> Void
+    public let frame: Frame
+
+    public init<T: BrewView & FramedView & OffsetRenderable>(_ view: T) {
+        self._render = view.render
+        self._renderOffset = view.render(withOffsetX:offsetY:in:)
+        self.frame = view.frame
+    }
+
+    public func render(in context: inout BrewUIContext) {
+        _render(&context)
+    }
+
+    public func render(withOffsetX offsetX: Int, offsetY: Int, in context: inout BrewUIContext) {
+        _renderOffset(offsetX, offsetY, &context)
+    }
+}
+
+// MARK: FramedViewBuilder Result Builder
+@resultBuilder
+public struct FramedViewBuilder {
+    public static func buildBlock(_ components: AnyFramedView...) -> [AnyFramedView] {
+        return components
+    }
+    public static func buildOptional(_ component: [AnyFramedView]?) -> [AnyFramedView] {
+        return component ?? []
+    }
+    public static func buildEither(first component: [AnyFramedView]) -> [AnyFramedView] {
+        return component
+    }
+    public static func buildEither(second component: [AnyFramedView]) -> [AnyFramedView] {
+        return component
+    }
+    public static func buildArray(_ components: [[AnyFramedView]]) -> [AnyFramedView] {
+        return components.flatMap { $0 }
+    }
+}
+
+// MARK: Layout Containers
+
+/// VStack: Arranges heterogeneous framed views vertically.
+public struct VStack: BrewView {
+    private let children: [AnyFramedView]
+    private let spacing: Int
+    private let alignment: StackAlignment
+
+    public init(spacing: Int = 10, alignment: StackAlignment = .center, @FramedViewBuilder content: () -> [AnyFramedView]) {
+        self.children = content()
+        self.spacing = spacing
+        self.alignment = alignment
+    }
+
+    public func render(in context: inout BrewUIContext) {
+        var currentY = 0
+        for child in children {
+            let childFrame = child.frame
+            let newX: Int
+            switch alignment {
+            case .center:
+                newX = (context.width - childFrame.width) / 2
+            case .leading:
+                newX = 0
+            case .trailing:
+                newX = context.width - childFrame.width
+            }
+            let offsetX = newX - childFrame.x
+            let offsetY = currentY - childFrame.y
+            child.render(withOffsetX: offsetX, offsetY: offsetY, in: &context)
+            currentY += childFrame.height + spacing
+        }
+    }
+}
+
+/// HStack: Arranges heterogeneous framed views horizontally.
+public struct HStack: BrewView {
+    private let children: [AnyFramedView]
+    private let spacing: Int
+    private let alignment: StackAlignment
+
+    public init(spacing: Int = 10, alignment: StackAlignment = .center, @FramedViewBuilder content: () -> [AnyFramedView]) {
+        self.children = content()
+        self.spacing = spacing
+        self.alignment = alignment
+    }
+
+    public func render(in context: inout BrewUIContext) {
+        var currentX = 0
+        for child in children {
+            let childFrame = child.frame
+            let newY: Int
+            switch alignment {
+            case .center:
+                newY = (context.height - childFrame.height) / 2
+            case .leading:
+                newY = 0
+            case .trailing:
+                newY = context.height - childFrame.height
+            }
+            let offsetX = currentX - childFrame.x
+            let offsetY = newY - childFrame.y
+            child.render(withOffsetX: offsetX, offsetY: offsetY, in: &context)
+            currentX += childFrame.width + spacing
+        }
+    }
+}
+
+/// ZStack: Overlays heterogeneous framed views.
+public struct ZStack: BrewView {
+    private let children: [AnyFramedView]
+
+    public init(@FramedViewBuilder content: () -> [AnyFramedView]) {
+        self.children = content()
+    }
+
+    public func render(in context: inout BrewUIContext) {
+        for child in children {
+            child.render(in: &context)
+        }
     }
 }

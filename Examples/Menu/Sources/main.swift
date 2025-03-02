@@ -7,36 +7,58 @@ import ST7789
 import MadGraphics
 import BrewUI
 
+// Define an EmptyView for conditionals.
+struct EmptyView: BrewView, FramedView, OffsetRenderable {
+    let frame: Frame = Frame(x: 0, y: 0, width: 0, height: 0)
+    func render(in context: inout BrewUIContext) { }
+    func render(withOffsetX offsetX: Int, offsetY: Int, in context: inout BrewUIContext) { }
+}
+
 // -----------------------------------------------------------------------------
 // MARK: - Sample Usage: ContentView and App Launch
-// This sample content view is written in a SwiftUI-like style.
+// This sample content view is written using the new flexible layout system.
 struct ContentView: BrewView {
-    let body: Group
-    
-    init() {
-        body = Group {
-            Button(text: "Option A", frame: Frame(x: 20, y: 20, width: 200, height: 30)) {
+    // Declare the UI in a computed property, similar to SwiftUI.
+    var body: some BrewView {
+        VStack(spacing: 10, alignment: .center) {
+            AnyFramedView(Button(text: "Option A",
+                                 frame: Frame(x: 0, y: 0, width: 200, height: 30)) {
                 print("Option A selected")
-            }
-            Button(text: "Option B", frame: Frame(x: 20, y: 70, width: 200, height: 30)) {
+            })
+            AnyFramedView(Button(text: "Option B",
+                                 frame: Frame(x: 0, y: 0, width: 200, height: 30)) {
                 print("Option B selected")
-            }
-            Button(text: "Option C", frame: Frame(x: 20, y: 120, width: 200, height: 30),
-                  foregroundColor: Color.blue.rawValue) {
+            })
+            AnyFramedView(Button(text: "Option C",
+                                 frame: Frame(x: 0, y: 0, width: 200, height: 30),
+                                 foregroundColor: Color.blue.rawValue) {
                 print("Option C selected")
+            })
+            // Conditional UI logic:
+            // If the condition is true, show the extra button; otherwise, show an EmptyView.
+            if true { // Replace 'true' with your condition (e.g., showExtraOption)
+                AnyFramedView(Button(text: "Extra Option",
+                                     frame: Frame(x: 0, y: 0, width: 200, height: 30),
+                                     foregroundColor: Color.green.rawValue) {
+                    print("Extra Option selected")
+                })
+            } else {
+                AnyFramedView(EmptyView())
             }
-            Text("Hello, world!", frame: Frame(x: 20, y: 170, width: 200, height: 30))
+            
+            AnyFramedView(Text("Hello, world!",
+                               frame: Frame(x: 0, y: 0, width: 200, height: 30)))
         }
     }
     
-    public func render(in context: inout BrewUIContext) {
+    // Render the computed body.
+    func render(in context: inout BrewUIContext) {
         body.render(in: &context)
     }
 }
 
 // ----------------------------------------------------------------------------
 // MARK: - App Entry Point
-// Wrap all the global initialization inside a @main type.
 let bl = DigitalOut(Id.D2)
 let rst = DigitalOut(Id.D12)
 let dc = DigitalOut(Id.D13)
@@ -52,10 +74,10 @@ let hwButton = DigitalIn(Id.D1)
 let buzzer = PWMOut(Id.PWM5A)
 buzzer.suspend() // Buzzer off initially
 
-// Create the content view
+// Create the content view.
 let contentView = ContentView()
 
-// Create the app
+// Create the app.
 var app = BrewUIApp(content: contentView,
                    pot: pot,
                    hwButton: hwButton,
@@ -65,5 +87,5 @@ var app = BrewUIApp(content: contentView,
                    screenBuffer: screenBuffer,
                    frameBuffer: frameBuffer)
 
-// Run the app
+// Run the app.
 app.run()
