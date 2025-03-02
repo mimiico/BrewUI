@@ -1,13 +1,14 @@
-import SwiftIO
-import MadBoard
-import ST7789
 import MadGraphics
+import MadBoard
+import SwiftIO
+import ST7789
 
 // -----------------------------------------------------------------------------
 // MARK: - Helper Drawing Functions
 // These functions use your provided APIs to draw on the screen.
-
-func clearScreen(layer: Layer, width: Int, height: Int) {
+func clearScreen(layer: Layer, 
+                 width: Int,
+                 height: Int) {
     for y in 0..<height {
         layer.draw { canvas in
             canvas.drawLine(
@@ -112,7 +113,10 @@ func drawTriangle(layer: Layer,
     }
 }
 
-func drawPolygon(layer: Layer, points: [Point], radius: Int, color: UInt32) {
+func drawPolygon(layer: Layer,
+                 points: [Point],
+                 radius: Int,
+                 color: UInt32) {
     // Draw line combinations consists of two points
     for index in 0..<points.count {
         let pointA = points[index]
@@ -132,7 +136,11 @@ func drawPolygon(layer: Layer, points: [Point], radius: Int, color: UInt32) {
     }
 }
 
-func drawCircle(layer: Layer, x: Int, y: Int, radius: Int, color: UInt32) {
+func drawCircle(layer: Layer,
+                x: Int, 
+                y: Int, 
+                radius: Int, 
+                color: UInt32) {
     layer.draw { canvas in
         canvas.fillCircle(
             at: Point(x: x, y: y),
@@ -144,7 +152,6 @@ func drawCircle(layer: Layer, x: Int, y: Int, radius: Int, color: UInt32) {
 
 // -----------------------------------------------------------------------------
 // MARK: - BrewUI Declarative Framework
-
 // A simple structure to represent a rectangular frame.
 public struct Frame {
     public let x: Int
@@ -166,7 +173,6 @@ public struct Frame {
 
 // -----------------------------------------------------------------------------
 // MARK: - Core View Protocol (View Rendering Only)
-
 // The drawing context provided during rendering.
 public struct BrewUIContext {
     public var layer: Layer
@@ -195,7 +201,6 @@ public protocol BrewView {
 
 // -----------------------------------------------------------------------------
 // MARK: - Interactive Components
-
 /// Interface for views that can be interacted with via selection.
 /// (We're not using a protocol because of embedded Swift limitations)
 public struct InteractiveState {
@@ -636,7 +641,6 @@ public struct BrewUIApp<Content: BrewView> {
 // MARK: - New Flexible Layout System
 // This new layout system supports mixing Buttons, Text, and other BrewViews
 // in declarative containers (VStack, HStack, ZStack) with conditional logic.
-
 // Define the StackAlignment type.
 public enum StackAlignment {
     case leading, center, trailing
@@ -700,12 +704,18 @@ extension Text: OffsetRenderable {
 public struct AnyFramedView: BrewView, FramedView, OffsetRenderable {
     private let _render: (inout BrewUIContext) -> Void
     private let _renderOffset: (Int, Int, inout BrewUIContext) -> Void
+    public let shouldIgnoreSpacing: Bool
     public let frame: Frame
 
     public init<T: BrewView & FramedView & OffsetRenderable>(_ view: T) {
         self._render = view.render
         self._renderOffset = view.render(withOffsetX:offsetY:in:)
         self.frame = view.frame
+        if view as? EmptyView != nil {
+            self.shouldIgnoreSpacing = true
+        } else {
+            self.shouldIgnoreSpacing = false
+        }
     }
 
     public func render(in context: inout BrewUIContext) {
@@ -747,8 +757,10 @@ public struct VStack: BrewView, FramedView, OffsetRenderable {
     private let children: [AnyFramedView]
     private let spacing: Int
     private let alignment: StackAlignment
+    private let fillParent: Bool
 
-    /// The `frame` parameter is optional. If not provided, the intrinsic size is computed from the children.
+    /// If no frame is provided, we compute an intrinsic frame from the children
+    /// but mark the stack to fill the parent's dimensions on render.
     public init(frame: Frame? = nil,
                 spacing: Int = 10,
                 alignment: StackAlignment = .center,
@@ -757,15 +769,16 @@ public struct VStack: BrewView, FramedView, OffsetRenderable {
         self.spacing = spacing
         self.alignment = alignment
 
-        let intrinsicHeight = children.reduce(0) { (result, child) in
-            result + child.frame.height
-        } + (children.count > 1 ? spacing * (children.count - 1) : 0)
-        let intrinsicWidth = children.map { $0.frame.width }.max() ?? 0
-
         if let providedFrame = frame {
             self.frame = providedFrame
+            self.fillParent = false
         } else {
+            // Compute intrinsic size based on children.
+            let intrinsicHeight = children.reduce(0) { $0 + $1.frame.height } +
+                                  (children.count > 1 ? spacing * (children.count - 1) : 0)
+            let intrinsicWidth = children.map { $0.frame.width }.max() ?? 0
             self.frame = Frame(x: 0, y: 0, width: intrinsicWidth, height: intrinsicHeight)
+            self.fillParent = true
         }
     }
 
@@ -774,8 +787,21 @@ public struct VStack: BrewView, FramedView, OffsetRenderable {
     }
 
     public func render(withOffsetX offsetX: Int, offsetY: Int, in context: inout BrewUIContext) {
-        let containerX = frame.x + offsetX
-        let containerY = frame.y + offsetY
+        // If fillParent is true, override the stored frame dimensions with the context’s dimensions.
+        let effectiveFrame: Frame
+        if fillParent {
+            effectiveFrame = Frame(x: frame.x, y: frame.y, width: context.width, height: context.height)
+        } else {
+            effectiveFrame = Frame(
+                x: frame.x,
+                y: frame.y,
+                width: frame.width == 0 ? context.width : frame.width,
+                height: frame.height == 0 ? context.height : frame.height
+            )
+        }
+        
+        let containerX = effectiveFrame.x + offsetX
+        let containerY = effectiveFrame.y + offsetY
 
         var currentY = 0
         for child in children {
@@ -783,16 +809,18 @@ public struct VStack: BrewView, FramedView, OffsetRenderable {
             let newX: Int
             switch alignment {
             case .center:
-                newX = (frame.width - childFrame.width) / 2
+                newX = (effectiveFrame.width - childFrame.width) / 2
             case .leading:
                 newX = 0
             case .trailing:
-                newX = frame.width - childFrame.width
+                newX = effectiveFrame.width - childFrame.width
             }
             let childOffsetX = containerX + newX - childFrame.x
             let childOffsetY = containerY + currentY - childFrame.y
             child.render(withOffsetX: childOffsetX, offsetY: childOffsetY, in: &context)
-            currentY += childFrame.height + spacing
+            if !child.shouldIgnoreSpacing {
+                currentY += childFrame.height + spacing
+            }
         }
     }
 }
@@ -804,7 +832,7 @@ public struct HStack: BrewView, FramedView, OffsetRenderable {
     private let spacing: Int
     private let alignment: StackAlignment
 
-    /// The `frame` parameter is optional. If not provided, the intrinsic size is computed from the children.
+    /// If no frame is provided, the intrinsic dimensions are computed from the children.
     public init(frame: Frame? = nil,
                 spacing: Int = 10,
                 alignment: StackAlignment = .center,
@@ -813,16 +841,15 @@ public struct HStack: BrewView, FramedView, OffsetRenderable {
         self.spacing = spacing
         self.alignment = alignment
 
-        // Compute intrinsic width and height from the children.
-        let intrinsicWidth = children.reduce(0) { (result, child) in
-            result + child.frame.width
-        } + (children.count > 1 ? spacing * (children.count - 1) : 0)
+        // Compute intrinsic width/height from the children.
+        let intrinsicWidth = children.reduce(0) { $0 + $1.frame.width } +
+                             (children.count > 1 ? spacing * (children.count - 1) : 0)
         let intrinsicHeight = children.map { $0.frame.height }.max() ?? 0
 
-        // Use the provided frame if available; otherwise, use the intrinsic size.
         if let providedFrame = frame {
             self.frame = providedFrame
         } else {
+            // Even if intrinsic size is zero, store it.
             self.frame = Frame(x: 0, y: 0, width: intrinsicWidth, height: intrinsicHeight)
         }
     }
@@ -832,9 +859,15 @@ public struct HStack: BrewView, FramedView, OffsetRenderable {
     }
 
     public func render(withOffsetX offsetX: Int, offsetY: Int, in context: inout BrewUIContext) {
-        // The container’s position comes from its frame plus any provided offset.
-        let containerX = frame.x + offsetX
-        let containerY = frame.y + offsetY
+        // If width or height is zero, default to the parent's container.
+        let effectiveFrame = Frame(
+            x: frame.x,
+            y: frame.y,
+            width: frame.width == 0 ? context.width : frame.width,
+            height: frame.height == 0 ? context.height : frame.height
+        )
+        let containerX = effectiveFrame.x + offsetX
+        let containerY = effectiveFrame.y + offsetY
 
         var currentX = 0
         for child in children {
@@ -842,13 +875,12 @@ public struct HStack: BrewView, FramedView, OffsetRenderable {
             let newY: Int
             switch alignment {
             case .center:
-                newY = (frame.height - childFrame.height) / 2
+                newY = (effectiveFrame.height - childFrame.height) / 2
             case .leading:
                 newY = 0
             case .trailing:
-                newY = frame.height - childFrame.height
+                newY = effectiveFrame.height - childFrame.height
             }
-            // Position each child relative to the container’s bounds.
             let childOffsetX = containerX + currentX - childFrame.x
             let childOffsetY = containerY + newY - childFrame.y
             child.render(withOffsetX: childOffsetX, offsetY: childOffsetY, in: &context)
@@ -862,10 +894,9 @@ public struct ZStack: BrewView, FramedView, OffsetRenderable {
     public let frame: Frame
     private let children: [AnyFramedView]
 
-    /// The `frame` parameter is optional. If not provided, the intrinsic frame is computed as the union of the children.
+    /// If no frame is provided, the intrinsic frame is computed as the union of the children.
     public init(frame: Frame? = nil, @FramedViewBuilder content: () -> [AnyFramedView]) {
         self.children = content()
-
         if let first = children.first {
             var minX = first.frame.x
             var minY = first.frame.y
@@ -878,7 +909,6 @@ public struct ZStack: BrewView, FramedView, OffsetRenderable {
                 maxX = max(maxX, child.frame.x + child.frame.width)
                 maxY = max(maxY, child.frame.y + child.frame.height)
             }
-
             let intrinsicFrame = Frame(x: minX, y: minY, width: maxX - minX, height: maxY - minY)
             if let providedFrame = frame {
                 self.frame = providedFrame
@@ -895,9 +925,15 @@ public struct ZStack: BrewView, FramedView, OffsetRenderable {
     }
 
     public func render(withOffsetX offsetX: Int, offsetY: Int, in context: inout BrewUIContext) {
-        let containerX = frame.x + offsetX
-        let containerY = frame.y + offsetY
-        // Render each child using the container’s offset.
+        let effectiveFrame = Frame(
+            x: frame.x,
+            y: frame.y,
+            width: frame.width == 0 ? context.width : frame.width,
+            height: frame.height == 0 ? context.height : frame.height
+        )
+        let containerX = effectiveFrame.x + offsetX
+        let containerY = effectiveFrame.y + offsetY
+
         for child in children {
             child.render(withOffsetX: containerX, offsetY: containerY, in: &context)
         }
