@@ -43,6 +43,17 @@ struct ContentView: BrewView {
             } else {
                 AnyFramedView(EmptyView())
             }
+
+            AnyFramedView(HStack(spacing: 10) {
+                AnyFramedView(Button(text: "C",
+                                 frame: Frame(x: 0, y: 0, width: 80, height: 30)) {
+                    print("Option C selected")
+                })
+                AnyFramedView(Button(text: "D",
+                                    frame: Frame(x: 0, y: 0, width: 80, height: 30)) {
+                    print("Option D selected")
+                })
+            })
             
             AnyFramedView(Text("Hello, world!",
                                frame: Frame(x: 0, y: 0, width: 200, height: 30)))
