@@ -4,9 +4,36 @@ import SwiftIO
 import ST7789
 
 // -----------------------------------------------------------------------------
+// MARK: - Font Configuration System
+// This allows customizing fonts throughout the UI system
+public struct FontConfiguration {
+    public let defaultFontPath: String
+    public let defaultPointSize: Int
+    public let defaultDPI: Int
+    
+    public init(
+        defaultFontPath: String = "/lfs/Resources/Fonts/Roboto-Regular.ttf",
+        defaultPointSize: Int = 8,
+        defaultDPI: Int = 220
+    ) {
+        self.defaultFontPath = defaultFontPath
+        self.defaultPointSize = defaultPointSize
+        self.defaultDPI = defaultDPI
+    }
+    
+    public func defaultFont() -> Font {
+        return Font(path: defaultFontPath, pointSize: defaultPointSize, dpi: defaultDPI)
+    }
+    
+    public func font(withSize pointSize: Int) -> Font {
+        return Font(path: defaultFontPath, pointSize: pointSize, dpi: defaultDPI)
+    }
+}
+
+// -----------------------------------------------------------------------------
 // MARK: - Helper Drawing Functions
 // These functions use your provided APIs to draw on the screen.
-func clearScreen(layer: Layer, 
+func clearScreen(layer: Layer,
                  width: Int,
                  height: Int) {
     for y in 0..<height {
@@ -137,9 +164,9 @@ func drawPolygon(layer: Layer,
 }
 
 func drawCircle(layer: Layer,
-                x: Int, 
-                y: Int, 
-                radius: Int, 
+                x: Int,
+                y: Int,
+                radius: Int,
                 color: UInt32) {
     layer.draw { canvas in
         canvas.fillCircle(
@@ -179,17 +206,20 @@ public struct BrewUIContext {
     public let width: Int
     public let height: Int
     public var selectionManager: SelectionManager?
+    public let fontConfig: FontConfiguration
 
     public init(
         layer: Layer,
         width: Int,
         height: Int,
-        selectionManager: SelectionManager? = nil
+        selectionManager: SelectionManager? = nil,
+        fontConfig: FontConfiguration = FontConfiguration()
     ) {
         self.layer = layer
         self.width = width
         self.height = height
         self.selectionManager = selectionManager
+        self.fontConfig = fontConfig
     }
 }
 
@@ -345,6 +375,7 @@ public struct Button: BrewView, FramedView {
     public let foregroundColor: UInt32
     public let selectionColor: UInt32
     public let onAction: () -> Void
+    public let textPointSize: Int
 
     // Static counter used during rendering to track button indices.
     static var currentButtonIndex = 0
@@ -362,6 +393,7 @@ public struct Button: BrewView, FramedView {
         self.frame = frame
         self.foregroundColor = Color.white.rawValue
         self.selectionColor = Color.yellow.rawValue
+        self.textPointSize = 8
         self.onAction = action
     }
 
@@ -370,12 +402,14 @@ public struct Button: BrewView, FramedView {
         frame: Frame,
         foregroundColor: UInt32 = Color.white.rawValue,
         selectionColor: UInt32 = Color.yellow.rawValue,
+        textPointSize: Int = 8,
         action: @escaping () -> Void
     ) {
         self.text = text
         self.frame = frame
         self.foregroundColor = foregroundColor
         self.selectionColor = selectionColor
+        self.textPointSize = textPointSize
         self.onAction = action
     }
 
@@ -408,7 +442,7 @@ public struct Button: BrewView, FramedView {
                     x: frame.x + 5,
                     y: frame.y + 5,
                     text: text,
-                    font: Font(path: "/lfs/Resources/Fonts/Roboto-Regular.ttf", pointSize: 8, dpi: 220),
+                    font: context.fontConfig.font(withSize: textPointSize),
                     color: Color.black.rawValue)
         }
     }
@@ -418,20 +452,22 @@ public struct Text: BrewView, FramedView {
     public let text: String
     public let frame: Frame
     public let foregroundColor: UInt32
-    public let pointSize: Int = 8
+    public let pointSize: Int
 
     public init(
         _ text: String,
         frame: Frame,
-        foregroundColor: UInt32 = Color.white.rawValue
+        foregroundColor: UInt32 = Color.white.rawValue,
+        pointSize: Int = 8
     ) {
         self.frame = frame
         self.text = text
         self.foregroundColor = foregroundColor
+        self.pointSize = pointSize
     }
 
     public func render(in context: inout BrewUIContext) {
-        let font = Font(path: "/lfs/Resources/Fonts/Roboto-Regular.ttf", pointSize: pointSize, dpi: 220)
+        let font = context.fontConfig.font(withSize: pointSize)
         drawText(layer: context.layer,
                  x: frame.x,
                  y: frame.y,
@@ -473,6 +509,7 @@ public func collectInteractiveViews<T: BrewView>(from view: T) -> SelectionManag
 public struct BrewUIApp<Content: BrewView> {
     var content: Content
     var selectionManager: SelectionManager
+    let fontConfig: FontConfiguration
 
     // Hardware and display components.
     let pot: AnalogIn
@@ -490,7 +527,8 @@ public struct BrewUIApp<Content: BrewView> {
                 screen: ST7789,
                 layer: Layer,
                 screenBuffer: [UInt16],
-                frameBuffer: [UInt32]) {
+                frameBuffer: [UInt32],
+                fontConfig: FontConfiguration = FontConfiguration()) {
         self.content = content
         self.pot = pot
         self.hwButton = hwButton
@@ -499,6 +537,7 @@ public struct BrewUIApp<Content: BrewView> {
         self.layer = layer
         self.screenBuffer = screenBuffer
         self.frameBuffer = frameBuffer
+        self.fontConfig = fontConfig
 
         // Initialize the selection manager.
         self.selectionManager = SelectionManager()
@@ -511,7 +550,8 @@ public struct BrewUIApp<Content: BrewView> {
             layer: layer,
             width: screen.width,
             height: screen.height,
-            selectionManager: self.selectionManager
+            selectionManager: self.selectionManager,
+            fontConfig: self.fontConfig
         )
 
         // Render once to register all buttons and their actions.
@@ -583,7 +623,8 @@ public struct BrewUIApp<Content: BrewView> {
             layer: layer,
             width: screen.width,
             height: screen.height,
-            selectionManager: selectionManager
+            selectionManager: selectionManager,
+            fontConfig: fontConfig
         )
         
         // Render the content to register visible interactive items.
@@ -610,7 +651,8 @@ public struct BrewUIApp<Content: BrewView> {
             layer: layer,
             width: screen.width,
             height: screen.height,
-            selectionManager: selectionManager
+            selectionManager: selectionManager,
+            fontConfig: fontConfig
         )
         
         // Render the content for real.
@@ -681,6 +723,7 @@ extension Button: OffsetRenderable {
             frame: offsetFrame,
             foregroundColor: self.foregroundColor,
             selectionColor: self.selectionColor,
+            textPointSize: self.textPointSize,
             action: self.action ?? {}
         )
         offsetButton.render(in: &context)
@@ -694,7 +737,12 @@ extension Text: OffsetRenderable {
             width: self.frame.width,
             height: self.frame.height
         )
-        let offsetText = Text(self.text, frame: offsetFrame, foregroundColor: self.foregroundColor)
+        let offsetText = Text(
+            self.text,
+            frame: offsetFrame,
+            foregroundColor: self.foregroundColor,
+            pointSize: self.pointSize
+        )
         offsetText.render(in: &context)
     }
 }
@@ -787,7 +835,7 @@ public struct VStack: BrewView, FramedView, OffsetRenderable {
     }
 
     public func render(withOffsetX offsetX: Int, offsetY: Int, in context: inout BrewUIContext) {
-        // If fillParent is true, override the stored frame dimensions with the context’s dimensions.
+        // If fillParent is true, override the stored frame dimensions with the context's dimensions.
         let effectiveFrame: Frame
         if fillParent {
             effectiveFrame = Frame(x: frame.x, y: frame.y, width: context.width, height: context.height)

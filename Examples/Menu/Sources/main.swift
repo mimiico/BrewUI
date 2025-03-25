@@ -20,23 +20,22 @@ struct ContentView: BrewView {
     var body: some BrewView {
         VStack(spacing: 10, alignment: .center) {
             AnyFramedView(Button(text: "Option A",
-                                 frame: Frame(x: 0, y: 0, width: 200, height: 30)) {
+                                 frame: Frame(width: 200, height: 30)) {
                 print("Option A selected")
             })
             AnyFramedView(Button(text: "Option B",
-                                 frame: Frame(x: 0, y: 0, width: 200, height: 30)) {
+                                 frame: Frame(width: 200, height: 30)) {
                 print("Option B selected")
             })
             AnyFramedView(Button(text: "More",
-                                 frame: Frame(x: 0, y: 0, width: 200, height: 30),
-                                 foregroundColor: Color.blue.rawValue) {
+                                 frame: Frame(width: 200, height: 30)) {
                 print("More selected")
                 viewModel.showExtraOption.toggle()
             })
 
             if viewModel.showExtraOption { 
                 AnyFramedView(Button(text: "Extra Option",
-                                     frame: Frame(x: 0, y: 0, width: 200, height: 30),
+                                     frame: Frame(width: 200, height: 30),
                                      foregroundColor: Color.green.rawValue) {
                     print("Extra Option selected")
                 })
@@ -46,21 +45,21 @@ struct ContentView: BrewView {
 
             AnyFramedView(HStack(spacing: 10) {
                 AnyFramedView(Button(text: "C",
-                                 frame: Frame(x: 0, y: 0, width: 60, height: 30)) {
+                                 frame: Frame(width: 60, height: 30)) {
                     print("Option C selected")
                 })
                 AnyFramedView(Button(text: "D",
-                                    frame: Frame(x: 0, y: 0, width: 60, height: 30)) {
+                                    frame: Frame(width: 60, height: 30)) {
                     print("Option D selected")
                 })
                 AnyFramedView(Button(text: "E",
-                                    frame: Frame(x: 0, y: 0, width: 60, height: 30)) {
+                                    frame: Frame(width: 60, height: 30)) {
                     print("Option E selected")
                 })
             })
-            
+
             AnyFramedView(Text("Hello, world!",
-                               frame: Frame(x: 0, y: 0, width: 200, height: 30)))
+                               frame: Frame(width: 200, height: 30)))
         }
     }
     
@@ -90,6 +89,13 @@ buzzer.suspend() // Buzzer off initially
 // Create the content view.
 let contentView = ContentView()
 
+let myFontConfig = FontConfiguration(
+    defaultFontPath: "/SD:/Itim-Regular.ttf", 
+    defaultPointSize: 10, 
+    defaultDPI: 240
+)
+
+
 // Create the app.
 var app = BrewUIApp(content: contentView,
                    pot: pot,
@@ -98,7 +104,8 @@ var app = BrewUIApp(content: contentView,
                    screen: screen,
                    layer: layer,
                    screenBuffer: screenBuffer,
-                   frameBuffer: frameBuffer)
+                   frameBuffer: frameBuffer,
+                   fontConfig: myFontConfig)
 
 // Run the app.
 app.run()
