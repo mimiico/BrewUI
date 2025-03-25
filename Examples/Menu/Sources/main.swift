@@ -1,6 +1,7 @@
 // The Swift Programming Language
 // https://docs.swift.org/swift-book
 print("Hello, world!")
+print(Color.red.rawValue)
 import SwiftIO
 import MadBoard
 import ST7789
@@ -19,6 +20,8 @@ struct ContentView: BrewView {
     // Declare the UI in a computed property, similar to SwiftUI.
     var body: some BrewView {
         VStack(spacing: 10, alignment: .center) {
+            AnyFramedView(EmptyView())
+
             AnyFramedView(Button(text: "Option A",
                                  frame: Frame(width: 200, height: 30)) {
                 print("Option A selected")
@@ -35,8 +38,7 @@ struct ContentView: BrewView {
 
             if viewModel.showExtraOption { 
                 AnyFramedView(Button(text: "Extra Option",
-                                     frame: Frame(width: 200, height: 30),
-                                     foregroundColor: Color.green.rawValue) {
+                                     frame: Frame(width: 200, height: 30)) {
                     print("Extra Option selected")
                 })
             } else {

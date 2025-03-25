@@ -177,6 +177,158 @@ func drawCircle(layer: Layer,
     }
 }
 
+func fillRoundedRectangle(layer: Layer,
+                         x: Int, y: Int,
+                         width: Int, height: Int,
+                         cornerRadius: Int,
+                         color: UInt32) {
+    // Ensure cornerRadius isn't too large
+    let r = min(cornerRadius, min(width/2, height/2))
+    
+    // Fill the center rectangle (full width)
+    layer.draw { canvas in
+        canvas.fillRectangle(at: Point(x: x, y: y + r),
+                           width: width,
+                           height: height - 2*r,
+                           data: color)
+    }
+    
+    // Fill the top and bottom rectangles (reducing width by 2*cornerRadius)
+    layer.draw { canvas in
+        canvas.fillRectangle(at: Point(x: x + r, y: y),
+                           width: width - 2*r,
+                           height: r,
+                           data: color)
+        canvas.fillRectangle(at: Point(x: x + r, y: y + height - r),
+                           width: width - 2*r,
+                           height: r,
+                           data: color)
+    }
+    
+    // Fill the four corner arcs using circle quarters
+    layer.draw { canvas in
+        canvas.fillCircle(at: Point(x: x + r, y: y + r),
+                        radius: r,
+                        data: color)
+        canvas.fillCircle(at: Point(x: x + width - r, y: y + r),
+                        radius: r,
+                        data: color)
+        canvas.fillCircle(at: Point(x: x + r, y: y + height - r),
+                        radius: r,
+                        data: color)
+        canvas.fillCircle(at: Point(x: x + width - r, y: y + height - r),
+                        radius: r,
+                        data: color)
+    }
+}
+
+// Draw a rounded rectangle outline using Bresenham's circle algorithm
+func drawRoundedRectangleOutline(layer: Layer,
+                                x: Int, y: Int,
+                                width: Int, height: Int,
+                                cornerRadius: Int,
+                                color: UInt32) {
+    // Ensure cornerRadius isn't too large
+    let r = min(cornerRadius, min(width/2, height/2))
+    
+    // Draw the straight lines
+    // Top edge
+    layer.draw { canvas in
+        canvas.drawLine(
+            from: Point(x: x + r, y: y),
+            to: Point(x: x + width - r, y: y),
+            data: color
+        )
+    }
+    
+    // Bottom edge
+    layer.draw { canvas in
+        canvas.drawLine(
+            from: Point(x: x + r, y: y + height),
+            to: Point(x: x + width - r, y: y + height),
+            data: color
+        )
+    }
+    
+    // Left edge
+    layer.draw { canvas in
+        canvas.drawLine(
+            from: Point(x: x, y: y + r),
+            to: Point(x: x, y: y + height - r),
+            data: color
+        )
+    }
+    
+    // Right edge
+    layer.draw { canvas in
+        canvas.drawLine(
+            from: Point(x: x + width, y: y + r),
+            to: Point(x: x + width, y: y + height - r),
+            data: color
+        )
+    }
+    
+    // Draw the four corner arcs using Bresenham's circle algorithm
+    // Top-left corner (only the top-left quadrant)
+    drawCircleQuadrant(layer: layer, xc: x + r, yc: y + r, r: r, quadrant: 2, color: color)
+    
+    // Top-right corner (only the top-right quadrant)
+    drawCircleQuadrant(layer: layer, xc: x + width - r, yc: y + r, r: r, quadrant: 1, color: color)
+    
+    // Bottom-left corner (only the bottom-left quadrant)
+    drawCircleQuadrant(layer: layer, xc: x + r, yc: y + height - r, r: r, quadrant: 3, color: color)
+    
+    // Bottom-right corner (only the bottom-right quadrant)
+    drawCircleQuadrant(layer: layer, xc: x + width - r, yc: y + height - r, r: r, quadrant: 4, color: color)
+}
+
+// Draw only one quadrant of a circle using Bresenham's algorithm
+// quadrant: 1=top-right, 2=top-left, 3=bottom-left, 4=bottom-right
+func drawCircleQuadrant(layer: Layer, xc: Int, yc: Int, r: Int, quadrant: Int, color: UInt32) {
+    var x = 0
+    var y = r
+    var d = 3 - 2 * r
+    
+    func plotPoint(_ x: Int, _ y: Int) {
+        var px = x
+        var py = y
+        
+        switch quadrant {
+        case 1: // Top-right
+            px = xc + x
+            py = yc - y
+        case 2: // Top-left
+            px = xc - x
+            py = yc - y
+        case 3: // Bottom-left
+            px = xc - x
+            py = yc + y
+        case 4: // Bottom-right
+            px = xc + x
+            py = yc + y
+        default:
+            return
+        }
+        
+        layer.draw { canvas in
+            canvas.fillRectangle(at: Point(x: px, y: py), width: 1, height: 1, data: color)
+        }
+    }
+    
+    while y >= x {
+        plotPoint(x, y)
+        plotPoint(y, x)
+        
+        if d > 0 {
+            y -= 1
+            d = d + 4 * (x - y) + 10
+        } else {
+            d = d + 4 * x + 6
+        }
+        x += 1
+    }
+}
+
 // -----------------------------------------------------------------------------
 // MARK: - BrewUI Declarative Framework
 // A simple structure to represent a rectangular frame.
@@ -369,6 +521,7 @@ public struct Group: BrewView {
 // -----------------------------------------------------------------------------
 // MARK: - Button Primitive
 // Has interactive properties but doesn't use protocol due to embedded Swift limitations.
+// Update Button struct to use rounded rectangles
 public struct Button: BrewView, FramedView {
     public let text: String?
     public let frame: Frame
@@ -376,6 +529,7 @@ public struct Button: BrewView, FramedView {
     public let selectionColor: UInt32
     public let onAction: () -> Void
     public let textPointSize: Int
+    public let cornerRadius: Int
 
     // Static counter used during rendering to track button indices.
     static var currentButtonIndex = 0
@@ -389,12 +543,15 @@ public struct Button: BrewView, FramedView {
         frame: Frame,
         action: @escaping () -> Void
     ) {
-        self.text = text
-        self.frame = frame
-        self.foregroundColor = Color.white.rawValue
-        self.selectionColor = Color.yellow.rawValue
-        self.textPointSize = 8
-        self.onAction = action
+        self.init(
+            text: text,
+            frame: frame,
+            foregroundColor: Color.white.rawValue,
+            selectionColor: Color.yellow.rawValue,
+            textPointSize: 8,
+            cornerRadius: 8,
+            action: action
+        )
     }
 
     public init(
@@ -403,6 +560,7 @@ public struct Button: BrewView, FramedView {
         foregroundColor: UInt32 = Color.white.rawValue,
         selectionColor: UInt32 = Color.yellow.rawValue,
         textPointSize: Int = 8,
+        cornerRadius: Int = 8,
         action: @escaping () -> Void
     ) {
         self.text = text
@@ -410,6 +568,7 @@ public struct Button: BrewView, FramedView {
         self.foregroundColor = foregroundColor
         self.selectionColor = selectionColor
         self.textPointSize = textPointSize
+        self.cornerRadius = cornerRadius
         self.onAction = action
     }
 
@@ -429,24 +588,33 @@ public struct Button: BrewView, FramedView {
         // Use the appropriate color based on selection.
         let color: UInt32 = isSelected ? selectionColor : foregroundColor
 
-        // Draw the button.
-        fillRectangle(layer: context.layer,
-                    x: frame.x,
-                    y: frame.y,
-                    width: frame.width,
-                    height: frame.height,
-                    color: color)
+        // Draw the button with rounded corners.
+        fillRoundedRectangle(
+            layer: context.layer,
+            x: frame.x,
+            y: frame.y,
+            width: frame.width,
+            height: frame.height,
+            cornerRadius: cornerRadius,
+            color: color
+        )
 
         if let text = text {
-            drawText(layer: context.layer,
-                    x: frame.x + 5,
-                    y: frame.y + 5,
-                    text: text,
-                    font: context.fontConfig.font(withSize: textPointSize),
-                    color: Color.black.rawValue)
+            // Center text within button
+            let verticalOffset = max(0, (frame.height - textPointSize) / 3)
+            
+            drawText(
+                layer: context.layer,
+                x: frame.x + cornerRadius,
+                y: frame.y + verticalOffset,
+                text: text,
+                font: context.fontConfig.font(withSize: textPointSize),
+                color: Color.black.rawValue
+            )
         }
     }
 }
+
 
 public struct Text: BrewView, FramedView {
     public let text: String
@@ -710,6 +878,7 @@ public struct EmptyView: BrewView, FramedView, OffsetRenderable {
 public protocol OffsetRenderable: BrewView {
     func render(withOffsetX offsetX: Int, offsetY: Int, in context: inout BrewUIContext)
 }
+
 extension Button: OffsetRenderable {
     public func render(withOffsetX offsetX: Int, offsetY: Int, in context: inout BrewUIContext) {
         let offsetFrame = Frame(
@@ -724,11 +893,13 @@ extension Button: OffsetRenderable {
             foregroundColor: self.foregroundColor,
             selectionColor: self.selectionColor,
             textPointSize: self.textPointSize,
+            cornerRadius: self.cornerRadius,
             action: self.action ?? {}
         )
         offsetButton.render(in: &context)
     }
 }
+
 extension Text: OffsetRenderable {
     public func render(withOffsetX offsetX: Int, offsetY: Int, in context: inout BrewUIContext) {
         let offsetFrame = Frame(
