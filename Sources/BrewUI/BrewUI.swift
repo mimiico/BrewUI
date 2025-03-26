@@ -37,14 +37,16 @@ public struct ColorConfiguration {
     public let secondaryTextColor: UInt32
     public let selectionBackgroundColor: UInt32
     public let selectionTextColor: UInt32
+    public let shadowColor: UInt32
     
     public init(
-        backgroundColor: UInt32 = UInt32(0xC2CFA4),
+        backgroundColor: UInt32 = UInt32(0xB6CFA4),
         primaryColor: UInt32 = Color.black.rawValue,
-        secondaryBackgroundColor: UInt32 = UInt32(0xA9B294),
-        secondaryTextColor: UInt32 = UInt32(0xC2CFA4),
+        secondaryBackgroundColor: UInt32 = UInt32(0xA3B595),
+        secondaryTextColor: UInt32 = UInt32(0xB6CFA4),
         selectionBackgroundColor: UInt32 = Color.black.rawValue,
-        selectionTextColor: UInt32 = UInt32(0xC2CFA4)
+        selectionTextColor: UInt32 = UInt32(0xB6CFA4),
+        shadowColor: UInt32 = UInt32(0x55000000) // Semi-transparent black
     ) {
         self.backgroundColor = backgroundColor
         self.primaryColor = primaryColor
@@ -52,6 +54,89 @@ public struct ColorConfiguration {
         self.secondaryTextColor = secondaryTextColor
         self.selectionBackgroundColor = selectionBackgroundColor
         self.selectionTextColor = selectionTextColor
+        self.shadowColor = shadowColor
+    }
+}
+
+// -----------------------------------------------------------------------------
+// MARK: - Shadow System
+// This system adds depth and visual hierarchy to UI elements
+
+public struct ShadowConfiguration {
+    public let offsetX: Int
+    public let offsetY: Int
+    public let color: UInt32
+    public let spread: Int
+    
+    public init(
+        offsetX: Int = 2,
+        offsetY: Int = 3,
+        color: UInt32 = UInt32(0x55000000), // Semi-transparent black
+        spread: Int = 0
+    ) {
+        self.offsetX = offsetX
+        self.offsetY = offsetY
+        self.color = color
+        self.spread = spread
+    }
+}
+
+// Function to draw a shadow under a rounded rectangle
+func drawShadow(
+    layer: Layer,
+    x: Int, y: Int,
+    width: Int, height: Int,
+    cornerRadius: Int,
+    shadowConfig: ShadowConfiguration
+) {
+    // Draw the shadow beneath the actual element
+    fillRoundedRectangle(
+        layer: layer,
+        x: x + shadowConfig.offsetX,
+        y: y + shadowConfig.offsetY,
+        width: width + shadowConfig.spread * 2,
+        height: height + shadowConfig.spread * 2,
+        cornerRadius: cornerRadius,
+        color: shadowConfig.color
+    )
+}
+
+// Draws a multi-layered shadow for a more realistic effect
+func drawMultiLayerShadow(
+    layer: Layer,
+    x: Int, y: Int,
+    width: Int, height: Int,
+    cornerRadius: Int,
+    shadowConfig: ShadowConfiguration,
+    layers: Int = 3
+) {
+    // Extract color components (assuming ARGB format)
+    let baseAlpha = (shadowConfig.color >> 24) & 0xFF
+    let red = (shadowConfig.color >> 16) & 0xFF
+    let green = (shadowConfig.color >> 8) & 0xFF
+    let blue = shadowConfig.color & 0xFF
+    
+    for i in 0..<layers {
+        // Calculate a decreasing alpha for each layer
+        let alphaScale = Float(layers - i) / Float(layers)
+        let adjustedAlpha = UInt32(Float(baseAlpha) * alphaScale)
+        
+        // Recreate color with adjusted alpha
+        let layerColor = (adjustedAlpha << 24) | (red << 16) | (green << 8) | blue
+        
+        // Calculate increasing offset for each layer
+        let layerOffsetX = shadowConfig.offsetX + i
+        let layerOffsetY = shadowConfig.offsetY + i
+        
+        fillRoundedRectangle(
+            layer: layer,
+            x: x + layerOffsetX,
+            y: y + layerOffsetY,
+            width: width + shadowConfig.spread * 2,
+            height: height + shadowConfig.spread * 2,
+            cornerRadius: cornerRadius,
+            color: layerColor
+        )
     }
 }
 
@@ -549,9 +634,8 @@ public struct Group: BrewView {
 }
 
 // -----------------------------------------------------------------------------
-// MARK: - Button Primitive
+// MARK: - Button Primitive with Shadow Support
 // Has interactive properties but doesn't use protocol due to embedded Swift limitations.
-// Update Button struct to use rounded rectangles
 public struct Button: BrewView, FramedView {
     public let text: String?
     public let frame: Frame
@@ -562,6 +646,7 @@ public struct Button: BrewView, FramedView {
     public let onAction: () -> Void
     public let textPointSize: Int
     public let cornerRadius: Int
+    public let shadowConfig: ShadowConfiguration?
 
     // Static counter used during rendering to track button indices.
     static var currentButtonIndex = 0
@@ -584,6 +669,7 @@ public struct Button: BrewView, FramedView {
             selectionTextColor: nil,
             textPointSize: 8,
             cornerRadius: 8,
+            shadowConfig: ShadowConfiguration(),
             action: action
         )
     }
@@ -597,6 +683,7 @@ public struct Button: BrewView, FramedView {
         selectionTextColor: UInt32? = nil,
         textPointSize: Int = 8,
         cornerRadius: Int = 8,
+        shadowConfig: ShadowConfiguration? = nil,
         action: @escaping () -> Void
     ) {
         self.text = text
@@ -607,6 +694,7 @@ public struct Button: BrewView, FramedView {
         self.selectionTextColor = selectionTextColor
         self.textPointSize = textPointSize
         self.cornerRadius = cornerRadius
+        self.shadowConfig = shadowConfig
         self.onAction = action
     }
 
@@ -622,16 +710,7 @@ public struct Button: BrewView, FramedView {
 
         // Check if this button is selected.
         let isSelected = context.selectionManager?.isSelected(at: buttonIndex) ?? false
-
-        // Use the appropriate foreground color based on selection.
-        let fgColor: UInt32
-        if isSelected {
-            fgColor = selectionForegroundColor ?? context.colorConfig.selectionBackgroundColor
-        } else {
-            fgColor = foregroundColor ?? context.colorConfig.secondaryBackgroundColor
-        }
-
-        // Draw the button with rounded corners.
+        
         fillRoundedRectangle(
             layer: context.layer,
             x: frame.x,
@@ -639,33 +718,89 @@ public struct Button: BrewView, FramedView {
             width: frame.width,
             height: frame.height,
             cornerRadius: cornerRadius,
-            color: fgColor
+            color: foregroundColor ?? context.colorConfig.secondaryBackgroundColor
         )
 
-        if let text = text {
-            // Determine the text color based on selection
-            let txtColor: UInt32
-            if isSelected {
-                txtColor = selectionTextColor ?? context.colorConfig.selectionTextColor
-            } else {
-                txtColor = textColor ?? context.colorConfig.secondaryTextColor
-            }
+        if isSelected {
+            let offsetY = frame.y - 5
             
-            // Center text within button
-            let verticalOffset = max(0, (frame.height - textPointSize) / 3)
+            // Draw shadow for selected button
+//            if let shadow = shadowConfig {
+//                drawMultiLayerShadow(
+//                    layer: context.layer,
+//                    x: frame.x,
+//                    y: offsetY,
+//                    width: frame.width,
+//                    height: frame.height,
+//                    cornerRadius: cornerRadius,
+//                    shadowConfig: shadow,
+//                    layers: 3
+//                )
+//            } else {
+//                // Use default shadow from color config
+//                let defaultShadow = ShadowConfiguration(
+//                    offsetX: 2,
+//                    offsetY: 3,
+//                    color: context.colorConfig.shadowColor,
+//                    spread: 0
+//                )
+//                drawShadow(
+//                    layer: context.layer,
+//                    x: frame.x,
+//                    y: offsetY,
+//                    width: frame.width,
+//                    height: frame.height,
+//                    cornerRadius: cornerRadius,
+//                    shadowConfig: defaultShadow
+//                )
+//            }
             
-            drawText(
+            // Draw the selected button
+            fillRoundedRectangle(
                 layer: context.layer,
-                x: frame.x + cornerRadius,
-                y: frame.y + verticalOffset,
-                text: text,
-                font: context.fontConfig.font(withSize: textPointSize),
-                color: txtColor
+                x: frame.x,
+                y: offsetY,
+                width: frame.width,
+                height: frame.height,
+                cornerRadius: cornerRadius,
+                color: selectionForegroundColor ?? context.colorConfig.selectionBackgroundColor
             )
+            
+            if let text = text {
+                // Determine the text color based on selection
+                let txtColor = selectionTextColor ?? context.colorConfig.selectionTextColor
+                
+                // Center text within button
+                let verticalOffset = max(0, (frame.height - textPointSize) / 3)
+                
+                drawText(
+                    layer: context.layer,
+                    x: frame.x + cornerRadius,
+                    y: offsetY + verticalOffset,
+                    text: text,
+                    font: context.fontConfig.font(withSize: textPointSize),
+                    color: txtColor
+                )
+            }
+        } else {
+            
+            if let text = text {
+                // Normal text rendering for non-selected buttons
+                let txtColor = textColor ?? context.colorConfig.secondaryTextColor
+                let verticalOffset = max(0, (frame.height - textPointSize) / 3)
+                
+                drawText(
+                    layer: context.layer,
+                    x: frame.x + cornerRadius,
+                    y: frame.y + verticalOffset,
+                    text: text,
+                    font: context.fontConfig.font(withSize: textPointSize),
+                    color: txtColor
+                )
+            }
         }
     }
 }
-
 
 public struct Text: BrewView, FramedView {
     public let text: String
@@ -952,6 +1087,7 @@ extension Button: OffsetRenderable {
             selectionTextColor: self.selectionTextColor,
             textPointSize: self.textPointSize,
             cornerRadius: self.cornerRadius,
+            shadowConfig: self.shadowConfig,
             action: self.action ?? {}
         )
         offsetButton.render(in: &context)
