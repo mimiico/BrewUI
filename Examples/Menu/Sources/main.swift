@@ -20,24 +20,27 @@ struct ContentView: BrewView {
     // Declare the UI in a computed property, similar to SwiftUI.
     var body: some BrewView {
         VStack(spacing: 10, alignment: .center) {
-            AnyFramedView(EmptyView())
+            AnyFramedView(Text(" ",
+                               frame: Frame(width: 200, height: 10)))
+            AnyFramedView(Text("EARBII",
+                               frame: Frame(width: 200, height: 25)))
 
-            AnyFramedView(Button(text: "Option A",
+            AnyFramedView(Button(text: "OPTION A",
                                  frame: Frame(width: 200, height: 30)) {
                 print("Option A selected")
             })
-            AnyFramedView(Button(text: "Option B",
+            AnyFramedView(Button(text: "OPTION B",
                                  frame: Frame(width: 200, height: 30)) {
                 print("Option B selected")
             })
-            AnyFramedView(Button(text: "More",
+            AnyFramedView(Button(text: "MORE",
                                  frame: Frame(width: 200, height: 30)) {
                 print("More selected")
                 viewModel.showExtraOption.toggle()
             })
 
             if viewModel.showExtraOption { 
-                AnyFramedView(Button(text: "Extra Option",
+                AnyFramedView(Button(text: "EXTRA",
                                      frame: Frame(width: 200, height: 30)) {
                     print("Extra Option selected")
                 })
@@ -46,22 +49,19 @@ struct ContentView: BrewView {
             }
 
             AnyFramedView(HStack(spacing: 10) {
-                AnyFramedView(Button(text: "C",
+                AnyFramedView(Button(text: "X",
                                  frame: Frame(width: 60, height: 30)) {
                     print("Option C selected")
                 })
-                AnyFramedView(Button(text: "D",
+                AnyFramedView(Button(text: "Y",
                                     frame: Frame(width: 60, height: 30)) {
                     print("Option D selected")
                 })
-                AnyFramedView(Button(text: "E",
+                AnyFramedView(Button(text: "Z",
                                     frame: Frame(width: 60, height: 30)) {
                     print("Option E selected")
                 })
             })
-
-            AnyFramedView(Text("Hello, world!",
-                               frame: Frame(width: 200, height: 30)))
         }
     }
     
@@ -91,11 +91,11 @@ buzzer.suspend() // Buzzer off initially
 // Create the content view.
 let contentView = ContentView()
 
-let myFontConfig = FontConfiguration(
-    defaultFontPath: "/SD:/Itim-Regular.ttf", 
-    defaultPointSize: 10, 
-    defaultDPI: 240
-)
+// let myFontConfig = FontConfiguration(
+//     defaultFontPath: "/SD:/Itim-Regular.ttf", 
+//     defaultPointSize: 10, 
+//     defaultDPI: 240
+// )
 
 
 // Create the app.
@@ -106,8 +106,8 @@ var app = BrewUIApp(content: contentView,
                    screen: screen,
                    layer: layer,
                    screenBuffer: screenBuffer,
-                   frameBuffer: frameBuffer,
-                   fontConfig: myFontConfig)
+                   frameBuffer: frameBuffer/*,
+                   fontConfig: myFontConfig*/)
 
 // Run the app.
 app.run()

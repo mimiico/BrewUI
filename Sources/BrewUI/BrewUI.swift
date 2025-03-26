@@ -30,18 +30,44 @@ public struct FontConfiguration {
     }
 }
 
+public struct ColorConfiguration {
+    public let backgroundColor: UInt32
+    public let primaryColor: UInt32
+    public let secondaryBackgroundColor: UInt32
+    public let secondaryTextColor: UInt32
+    public let selectionBackgroundColor: UInt32
+    public let selectionTextColor: UInt32
+    
+    public init(
+        backgroundColor: UInt32 = UInt32(0xC2CFA4),
+        primaryColor: UInt32 = Color.black.rawValue,
+        secondaryBackgroundColor: UInt32 = UInt32(0xA9B294),
+        secondaryTextColor: UInt32 = UInt32(0xC2CFA4),
+        selectionBackgroundColor: UInt32 = Color.black.rawValue,
+        selectionTextColor: UInt32 = UInt32(0xC2CFA4)
+    ) {
+        self.backgroundColor = backgroundColor
+        self.primaryColor = primaryColor
+        self.secondaryBackgroundColor = secondaryBackgroundColor
+        self.secondaryTextColor = secondaryTextColor
+        self.selectionBackgroundColor = selectionBackgroundColor
+        self.selectionTextColor = selectionTextColor
+    }
+}
+
 // -----------------------------------------------------------------------------
 // MARK: - Helper Drawing Functions
 // These functions use your provided APIs to draw on the screen.
 func clearScreen(layer: Layer,
                  width: Int,
-                 height: Int) {
+                 height: Int,
+                 backgroundColor: UInt32 = Color.black.rawValue) {
     for y in 0..<height {
         layer.draw { canvas in
             canvas.drawLine(
                 from: Point(x: 0, y: y),
                 to: Point(x: width - 1, y: y),
-                data: Color.black.rawValue
+                data: backgroundColor
             )
         }
     }
@@ -359,21 +385,25 @@ public struct BrewUIContext {
     public let height: Int
     public var selectionManager: SelectionManager?
     public let fontConfig: FontConfiguration
+    public let colorConfig: ColorConfiguration
 
     public init(
         layer: Layer,
         width: Int,
         height: Int,
         selectionManager: SelectionManager? = nil,
-        fontConfig: FontConfiguration = FontConfiguration()
+        fontConfig: FontConfiguration = FontConfiguration(),
+        colorConfig: ColorConfiguration = ColorConfiguration()
     ) {
         self.layer = layer
         self.width = width
         self.height = height
         self.selectionManager = selectionManager
         self.fontConfig = fontConfig
+        self.colorConfig = colorConfig
     }
 }
+
 
 // The base protocol for all views - only concerned with rendering.
 public protocol BrewView {
@@ -525,8 +555,10 @@ public struct Group: BrewView {
 public struct Button: BrewView, FramedView {
     public let text: String?
     public let frame: Frame
-    public let foregroundColor: UInt32
-    public let selectionColor: UInt32
+    public let foregroundColor: UInt32?
+    public let textColor: UInt32?
+    public let selectionForegroundColor: UInt32?
+    public let selectionTextColor: UInt32?
     public let onAction: () -> Void
     public let textPointSize: Int
     public let cornerRadius: Int
@@ -546,8 +578,10 @@ public struct Button: BrewView, FramedView {
         self.init(
             text: text,
             frame: frame,
-            foregroundColor: Color.white.rawValue,
-            selectionColor: Color.yellow.rawValue,
+            foregroundColor: nil,
+            textColor: nil,
+            selectionForegroundColor: nil,
+            selectionTextColor: nil,
             textPointSize: 8,
             cornerRadius: 8,
             action: action
@@ -557,8 +591,10 @@ public struct Button: BrewView, FramedView {
     public init(
         text: String? = nil,
         frame: Frame,
-        foregroundColor: UInt32 = Color.white.rawValue,
-        selectionColor: UInt32 = Color.yellow.rawValue,
+        foregroundColor: UInt32? = nil,
+        textColor: UInt32? = nil,
+        selectionForegroundColor: UInt32? = nil,
+        selectionTextColor: UInt32? = nil,
         textPointSize: Int = 8,
         cornerRadius: Int = 8,
         action: @escaping () -> Void
@@ -566,7 +602,9 @@ public struct Button: BrewView, FramedView {
         self.text = text
         self.frame = frame
         self.foregroundColor = foregroundColor
-        self.selectionColor = selectionColor
+        self.textColor = textColor
+        self.selectionForegroundColor = selectionForegroundColor
+        self.selectionTextColor = selectionTextColor
         self.textPointSize = textPointSize
         self.cornerRadius = cornerRadius
         self.onAction = action
@@ -585,8 +623,13 @@ public struct Button: BrewView, FramedView {
         // Check if this button is selected.
         let isSelected = context.selectionManager?.isSelected(at: buttonIndex) ?? false
 
-        // Use the appropriate color based on selection.
-        let color: UInt32 = isSelected ? selectionColor : foregroundColor
+        // Use the appropriate foreground color based on selection.
+        let fgColor: UInt32
+        if isSelected {
+            fgColor = selectionForegroundColor ?? context.colorConfig.selectionBackgroundColor
+        } else {
+            fgColor = foregroundColor ?? context.colorConfig.secondaryBackgroundColor
+        }
 
         // Draw the button with rounded corners.
         fillRoundedRectangle(
@@ -596,10 +639,18 @@ public struct Button: BrewView, FramedView {
             width: frame.width,
             height: frame.height,
             cornerRadius: cornerRadius,
-            color: color
+            color: fgColor
         )
 
         if let text = text {
+            // Determine the text color based on selection
+            let txtColor: UInt32
+            if isSelected {
+                txtColor = selectionTextColor ?? context.colorConfig.selectionTextColor
+            } else {
+                txtColor = textColor ?? context.colorConfig.secondaryTextColor
+            }
+            
             // Center text within button
             let verticalOffset = max(0, (frame.height - textPointSize) / 3)
             
@@ -609,7 +660,7 @@ public struct Button: BrewView, FramedView {
                 y: frame.y + verticalOffset,
                 text: text,
                 font: context.fontConfig.font(withSize: textPointSize),
-                color: Color.black.rawValue
+                color: txtColor
             )
         }
     }
@@ -619,13 +670,13 @@ public struct Button: BrewView, FramedView {
 public struct Text: BrewView, FramedView {
     public let text: String
     public let frame: Frame
-    public let foregroundColor: UInt32
+    public let foregroundColor: UInt32?
     public let pointSize: Int
 
     public init(
         _ text: String,
         frame: Frame,
-        foregroundColor: UInt32 = Color.white.rawValue,
+        foregroundColor: UInt32? = nil,
         pointSize: Int = 8
     ) {
         self.frame = frame
@@ -641,7 +692,7 @@ public struct Text: BrewView, FramedView {
                  y: frame.y,
                  text: text,
                  font: font,
-                 color: foregroundColor)
+                 color: foregroundColor ?? context.colorConfig.primaryColor)
     }
 }
 
@@ -678,6 +729,7 @@ public struct BrewUIApp<Content: BrewView> {
     var content: Content
     var selectionManager: SelectionManager
     let fontConfig: FontConfiguration
+    let colorConfig: ColorConfiguration
 
     // Hardware and display components.
     let pot: AnalogIn
@@ -696,7 +748,8 @@ public struct BrewUIApp<Content: BrewView> {
                 layer: Layer,
                 screenBuffer: [UInt16],
                 frameBuffer: [UInt32],
-                fontConfig: FontConfiguration = FontConfiguration()) {
+                fontConfig: FontConfiguration = FontConfiguration(),
+                colorConfig: ColorConfiguration = ColorConfiguration()) {
         self.content = content
         self.pot = pot
         self.hwButton = hwButton
@@ -706,6 +759,7 @@ public struct BrewUIApp<Content: BrewView> {
         self.screenBuffer = screenBuffer
         self.frameBuffer = frameBuffer
         self.fontConfig = fontConfig
+        self.colorConfig = colorConfig
 
         // Initialize the selection manager.
         self.selectionManager = SelectionManager()
@@ -719,7 +773,8 @@ public struct BrewUIApp<Content: BrewView> {
             width: screen.width,
             height: screen.height,
             selectionManager: self.selectionManager,
-            fontConfig: self.fontConfig
+            fontConfig: self.fontConfig,
+            colorConfig: self.colorConfig
         )
 
         // Render once to register all buttons and their actions.
@@ -792,7 +847,8 @@ public struct BrewUIApp<Content: BrewView> {
             width: screen.width,
             height: screen.height,
             selectionManager: selectionManager,
-            fontConfig: fontConfig
+            fontConfig: fontConfig,
+            colorConfig: colorConfig
         )
         
         // Render the content to register visible interactive items.
@@ -808,8 +864,8 @@ public struct BrewUIApp<Content: BrewView> {
         
         // === Second Pass: Actual Drawing with Updated Selection Manager ===
         
-        // Clear the screen.
-        clearScreen(layer: layer, width: screen.width, height: screen.height)
+        // Clear the screen with the background color from colorConfig.
+        clearScreen(layer: layer, width: screen.width, height: screen.height, backgroundColor: colorConfig.backgroundColor)
         
         // Reset button counter again for the drawing pass.
         Button.currentButtonIndex = 0
@@ -820,7 +876,8 @@ public struct BrewUIApp<Content: BrewView> {
             width: screen.width,
             height: screen.height,
             selectionManager: selectionManager,
-            fontConfig: fontConfig
+            fontConfig: fontConfig,
+            colorConfig: colorConfig
         )
         
         // Render the content for real.
@@ -846,7 +903,6 @@ public struct BrewUIApp<Content: BrewView> {
         screenBuffer = sb
     }
 }
-
 // -----------------------------------------------------------------------------
 // MARK: - New Flexible Layout System
 // This new layout system supports mixing Buttons, Text, and other BrewViews
@@ -891,7 +947,9 @@ extension Button: OffsetRenderable {
             text: self.text,
             frame: offsetFrame,
             foregroundColor: self.foregroundColor,
-            selectionColor: self.selectionColor,
+            textColor: self.textColor,
+            selectionForegroundColor: self.selectionForegroundColor,
+            selectionTextColor: self.selectionTextColor,
             textPointSize: self.textPointSize,
             cornerRadius: self.cornerRadius,
             action: self.action ?? {}
