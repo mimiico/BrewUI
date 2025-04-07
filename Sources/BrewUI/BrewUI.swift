@@ -1354,7 +1354,7 @@ public struct ZStack: BrewView, FramedView, OffsetRenderable {
 }
 
 // Simple Pixel Cat Animation
-struct PixelCat{
+public class PixelCat:BrewView, FramedView, OffsetRenderable{
     public let frame: Frame
     private var position: Point
     private var frameIndex: Int = 0
@@ -1413,91 +1413,94 @@ struct PixelCat{
         0xFFFFFFFF  // 3: White
     ]
     
-    init(x: Int, y: Int) {
+    public init(x: Int, y: Int) {
         self.frame = Frame(x: x, y: y, width: 16, height: 16)
         self.position = Point(x: x, y: y)
+        print("Pixel cat Initialized")
     }
     
-    // Start walking animation
-    mutating func walk(direction: Float) {
-        self.isWalking = true
-        self.velocity = direction
+    // Start walking animation (no mutating needed for class)
+    public func walk(direction: Float) {
+        isWalking = true
+        velocity = direction
     }
     
-    // Stop and sit
-    mutating func sit() {
-        self.isWalking = false
-        self.velocity = 0
-        self.frameIndex = 0
+    // Stop and sit (no mutating needed for class)
+    public func sit() {
+        isWalking = false
+        velocity = 0
+        frameIndex = 0
     }
     
-    // Render the cat
-    mutating func render(in context: inout BrewUIContext) {
+    // Render the cat (no mutating needed for class)
+    public func render(in context: inout BrewUIContext) {
         // Update position if walking
-        if  self.isWalking {
+        if isWalking {
+            print("Pixel cat is walking")
             // Clear previous position
             drawCurrentFrame(context.layer, clear: true)
             
             // Update position (simple animation without delta time)
-            self.position.x += Int(self.velocity)
+            position.x += Int(velocity)
             
             // Check boundaries
-            if self.position.x < 10 || self.position.x > context.width - 26 {
-                 self.velocity = -self.velocity
+            if position.x < 10 || position.x > context.width - 26 {
+                velocity = -velocity
             }
         }
         
         // Update animation frame
-         self.frameTimer += 1
-        if  self.frameTimer >= 5 {  // Change frame every 5 renders (adjust for speed)
-             self.frameTimer = 0
-             self.frameIndex = ( self.frameIndex + 1) % ( self.isWalking ?  self.walkingFrames.count :  self.sittingFrames.count)
+        frameTimer += 1
+        if frameTimer > 1 {  // Change frame every 5 renders (adjust for speed)
+            frameTimer = 0
+            frameIndex = (frameIndex + 1) % (isWalking ? walkingFrames.count : sittingFrames.count)
         }
         
         // Draw the cat
         drawCurrentFrame(context.layer, clear: false)
+        print("Pixel cat drawn")
     }
     
+    public func render(withOffsetX offsetX: Int, offsetY: Int, in context: inout BrewUIContext) {
+        // Store original position
+        let originalX = position.x
+        let originalY = position.y
+        
+        // Temporarily move to the offset position
+        position.x += offsetX
+        position.y += offsetY
+        
+        // Render at the offset position
+        render(in: &context)
+        
+        // Restore original position
+        position.x = originalX
+        position.y = originalY
+    }
     // Helper to draw the current frame
     private func drawCurrentFrame(_ layer: Layer, clear: Bool) {
         let frames = isWalking ? walkingFrames : sittingFrames
         let frame = frames[frameIndex]
-        let size = 2  // Scale factor for the cat
+        let size = 15  // Scale factor for the cat
         
         for y in 0..<frame.count {
             for x in 0..<frame[y].count {
-                let colorIndex = frame[y][x]
-                if colorIndex > 0 {  // Skip transparent pixels
-                    let color = clear ? 0x00000000 : colors[colorIndex]
-                    
-                    layer.draw { canvas in
-                        canvas.fillRectangle(
-                            at: Point(x: position.x + x*size, y: position.y + y*size),
-                            width: size,
-                            height: size,
-                            data: color
-                        )
+                if x < frame[y].count {
+                    let colorIndex = frame[y][x]
+                    if colorIndex > 0 {  // Skip transparent pixels
+                        let color = clear ? 0x00000000 : colors[colorIndex]
+                        
+                        layer.draw { canvas in
+                            canvas.fillRectangle(
+                                at: Point(x: position.x + x*size, y: position.y + y*size),
+                                width: size,
+                                height: size,
+                                data: color
+                            )
+                        }
                     }
                 }
             }
         }
-    }
-}
-
-// Extension to support OffsetRenderable
-extension PixelCat{
-    func render(withOffsetX offsetX: Int, offsetY: Int, in context: inout BrewUIContext) {
-        // We need to modify layer to render with offset
-        // This is a workaround since we can't modify self
-        let originalPosition = position
-        
-        // Create a temporary layer to draw with offset
-        let tempLayer = Layer(at: Point(x: offsetX, y: offsetY), 
-                              anchorPoint: .zero, 
-                              width: context.width, 
-                              height: context.height)
-        
-        // Draw to the context's layer
-        drawCurrentFrame(context.layer, clear: false)
     }
 }
