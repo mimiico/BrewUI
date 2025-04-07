@@ -78,6 +78,7 @@ class ContentViewModel {
 // This sample content view is written using the new flexible layout system.
 struct ContentView: BrewView {
     let viewModel = ContentViewModel()
+    var pixelCat = PixelCat(x: 40, y: 60)
     // Declare the UI in a computed property, similar to SwiftUI.
     var body: some BrewView {
         VStack(spacing: 7, alignment: .center) {
@@ -204,6 +205,7 @@ struct ContentView: BrewView {
                 AnyFramedView(Button(text: "OPTION B",
                                  frame: Frame(width: 200, height: 30)) {
                     print("Option B selected")
+                    pixelCat.walk(direction: 1.0)
                 })
                 if !viewModel.showExtraOption {
                     AnyFramedView(Button(text: "MORE",
